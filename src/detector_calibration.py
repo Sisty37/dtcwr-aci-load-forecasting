@@ -31,10 +31,7 @@ def block_bootstrap(x: np.ndarray, length: int, block: int, rng: np.random.Gener
 
 def alarm_rate(stream: np.ndarray, make, warm: int = cb.W0) -> float:
     """Alarms per 1,000 post-warm-up steps for a detector built by make()."""
-    m = make()
-    m.setup(stream[:warm])
-    for t, v in enumerate(stream):
-        m.observe(t, float(v))
+    m = cb.run_stream(make(), stream, warm)
     return 1000.0 * len(m.alarms) / max(1, len(stream) - warm)
 
 

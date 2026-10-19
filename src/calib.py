@@ -75,11 +75,14 @@ class Method:
             raise RuntimeError(f"target {tau}: {m} scores known, expected {tau - self.h + 1}")
         level = 1 - (self.copies[tau % self.h] if self.copies is not None else self.alpha)
         win = self._window(m)
-        q = qhat(win, level) if len(win) else (math.inf if level > 0 else -math.inf)
+        q = self._q(win, level) if len(win) else (math.inf if level > 0 else -math.inf)
         self.q_issued[tau] = q
         return q
 
     # hooks
+    def _q(self, window: np.ndarray, p: float) -> float:
+        return qhat(window, p)
+
     def _on_observe(self, t: int, s: float) -> None:
         pass
 
@@ -125,8 +128,14 @@ class DTCWR(Method):
 
     def __init__(self, alpha, h, W_S=48, W_L=720, H=6.0, k=0.5, c=24, aci_gamma=None,
                  signal: str = "magnitude", window_rule: str = "anchored",
-                 prewhiten: bool = False):
+                 prewhiten: bool = False, miss_min: int = 10):
         super().__init__(alpha, h, aci_gamma)
+        if signal not in ("magnitude", "miss") or window_rule not in ("anchored", "reset"):
+            raise ValueError((signal, window_rule))
+        self.needs_predict = signal == "miss"     # the miss signal needs the issued intervals
+        self.miss_min = miss_min
+        self.scan: list[float] = []               # miss signal: e_t - alpha since the scan start
+        self.scan_t0 = 0
         self.prewhiten = prewhiten
         self.phi = 0.0                    # AR(1) coefficient of z, fitted on warm-up (prewhiten only)
         self.z_prev = None
@@ -154,9 +163,13 @@ class DTCWR(Method):
             zc = z - z.mean()
             self.phi = float(np.clip((zc[1:] * zc[:-1]).mean() / (zc * zc).mean(), 0.0, 0.95))
         self.started_at = len(warm)            # detector runs from the first post-warm-up score
+        self.scan_t0 = self.started_at         # miss signal: stream index of scan[0]
 
     def _on_observe(self, t, s):
         if t < self.started_at:
+            return
+        if self.signal == "miss":
+            self._observe_miss(t, s)
             return
         cs = self.cs
         r = math.log(s / self.sigma0 + 1e-6)
@@ -191,6 +204,29 @@ class DTCWR(Method):
             cs.gp = cs.gm = 0.0
             cs.zero_p = cs.zero_m = t
 
+    def _observe_miss(self, t, s):
+        """2x2 ablation, factor 'signal' = miss indicators (the DriftOCP statistic, Liang et al. Alg. 1):
+        max over j of |sum_{l=j..t}(e_l - alpha)| / sqrt(t - j + 1), blocks of length >= miss_min,
+        scan restricted to the last W_L steps since the last (re)start. Same pause / cooldown /
+        window rule as the magnitude detector, so only the signal differs."""
+        if self.paused:
+            self.post.append(s)
+            if len(self.post) >= self.W_S:
+                self.paused, self.scan, self.scan_t0 = False, [], t + 1
+            return
+        e = float(s > self.q_issued.get(t, math.inf))
+        self.scan.append(e - self.alpha)
+        if len(self.scan) > self.W_L:
+            self.scan.pop(0)
+            self.scan_t0 += 1
+        z, j = max_block_z(np.asarray(self.scan), self.miss_min)
+        if z > self.cs.H and t - self.t_alarm >= self.c:
+            tau_hat = self.scan_t0 + j
+            self.anchor = tau_hat if self.window_rule == "anchored" else t + 1
+            self.t_alarm = t
+            self.paused, self.post = True, []
+            self.alarms.append((t, "miss", tau_hat))
+
     def n_post(self, m: int) -> int:
         return max(0, m - self.anchor) if self.anchor <= m else 0
 
@@ -199,7 +235,31 @@ class DTCWR(Method):
         return np.asarray(self.scores[m - n:m])
 
 
+def max_block_z(d: np.ndarray, min_len: int = 1) -> tuple[float, int]:
+    """max_j |sum(d[j:])| / sqrt(len(d) - j) over blocks ending at the last element with
+    length >= min_len. Returns (statistic, j). (0, 0) if no block is long enough."""
+    n = len(d)
+    if n < min_len:
+        return 0.0, 0
+    tail = np.cumsum(d[::-1])[::-1][: n - min_len + 1]          # sum(d[j:]) for j = 0..n-min_len
+    z = np.abs(tail) / np.sqrt(n - np.arange(len(tail)))
+    j = int(np.argmax(z))
+    return float(z[j]), j
+
+
 # ----------------------------------------------------------------------------- engine
+def run_stream(method: Method, scores: np.ndarray, warm: int = W0) -> Method:
+    """Feed a whole score stream (detector studies). Issues the interval for target t + h after
+    observing score t when the method needs its own intervals (miss-indicator detectors)."""
+    method.setup(np.asarray(scores[:warm], float))
+    need = getattr(method, "needs_predict", False)
+    for t, v in enumerate(scores):
+        method.observe(t, float(v))
+        if need:
+            method.predict(t + method.h)
+    return method
+
+
 def replay(method: Method, y: np.ndarray, yhat: np.ndarray, warm: int = W0) -> dict:
     """Run one method over one stream. Returns per-target q and coverage (NaN where not evaluated)."""
     s = np.abs(np.asarray(y, float) - np.asarray(yhat, float))
