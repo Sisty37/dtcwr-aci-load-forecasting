@@ -1,0 +1,46 @@
+{
+  "electricity_h1": {
+    "pooled_median_delay": {
+      "plain": 52.0,
+      "prewhiten": 41.0
+    },
+    "winner": "prewhiten",
+    "H": {
+      "plain": 12,
+      "prewhiten": 7
+    }
+  },
+  "electricity_h24": {
+    "pooled_median_delay": {
+      "plain": 87.5,
+      "prewhiten": 82.5
+    },
+    "winner": "prewhiten",
+    "H": {
+      "plain": 25,
+      "prewhiten": 8
+    }
+  },
+  "elec2_h1": {
+    "pooled_median_delay": {
+      "plain": 46.0,
+      "prewhiten": 26.0
+    },
+    "winner": "prewhiten",
+    "H": {
+      "plain": 10,
+      "prewhiten": 7
+    }
+  },
+  "elec2_h48": {
+    "pooled_median_delay": {
+      "plain": 573.0,
+      "prewhiten": 1000.0
+    },
+    "winner": "plain",
+    "H": {
+      "plain": 60,
+      "prewhiten": 5
+    }
+  }
+}

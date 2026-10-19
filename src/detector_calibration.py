@@ -19,7 +19,7 @@ import numpy as np
 import calib as cb
 
 TARGET_FA = 0.5                 # alarms per 1,000 steps
-H_GRID = (3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 60)
+H_GRID = (3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 60, 80, 100, 150)
 
 
 def block_bootstrap(x: np.ndarray, length: int, block: int, rng: np.random.Generator) -> np.ndarray:
