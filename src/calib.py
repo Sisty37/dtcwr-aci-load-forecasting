@@ -124,8 +124,12 @@ class DTCWR(Method):
     name = "dtcwr"
 
     def __init__(self, alpha, h, W_S=48, W_L=720, H=6.0, k=0.5, c=24, aci_gamma=None,
-                 signal: str = "magnitude", window_rule: str = "anchored"):
+                 signal: str = "magnitude", window_rule: str = "anchored",
+                 prewhiten: bool = False):
         super().__init__(alpha, h, aci_gamma)
+        self.prewhiten = prewhiten
+        self.phi = 0.0                    # AR(1) coefficient of z, fitted on warm-up (prewhiten only)
+        self.z_prev = None
         if W_S > W_L:
             raise ValueError("W_S must be <= W_L")
         self.W_S, self.W_L, self.c = W_S, W_L, c
@@ -144,7 +148,11 @@ class DTCWR(Method):
         self.sigma0 = float(np.median(np.abs(warm)) / 0.6745) or 1e-12
         r = np.log(warm / self.sigma0 + 1e-6)
         self.cs.mu, self.cs.sd = float(r.mean()), float(r.std() or 1.0)
-        self.cs.zlo = float(np.quantile((r - self.cs.mu) / self.cs.sd, 0.05))
+        z = np.maximum((r - self.cs.mu) / self.cs.sd, np.quantile((r - self.cs.mu) / self.cs.sd, 0.05))
+        self.cs.zlo = float(z.min())
+        if self.prewhiten and len(z) > 2:
+            zc = z - z.mean()
+            self.phi = float(np.clip((zc[1:] * zc[:-1]).mean() / (zc * zc).mean(), 0.0, 0.95))
         self.started_at = len(warm)            # detector runs from the first post-warm-up score
 
     def _on_observe(self, t, s):
@@ -159,8 +167,12 @@ class DTCWR(Method):
                 self.paused = False
                 cs.gp = cs.gm = 0.0
                 cs.zero_p = cs.zero_m = t
+                self.z_prev = None
             return
         z = max((r - cs.mu) / cs.sd, cs.zlo)
+        if self.prewhiten:                     # AR(1) innovation, rescaled to unit variance
+            e = z if self.z_prev is None else (z - self.phi * self.z_prev) / math.sqrt(1 - self.phi ** 2)
+            self.z_prev, z = z, e
         cs.gp = max(0.0, cs.gp + z - cs.k)
         if cs.gp == 0.0:
             cs.zero_p = t
@@ -175,6 +187,7 @@ class DTCWR(Method):
                 self.t_alarm = t
                 self.paused, self.post = True, []
                 self.alarms.append((t, trig, tau_hat))
+                self.z_prev = None
             cs.gp = cs.gm = 0.0
             cs.zero_p = cs.zero_m = t
 
