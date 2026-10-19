@@ -55,6 +55,11 @@ class Method:
         self.copies = np.full(h, alpha) if aci_gamma is not None else None
         self.scores: list[float] = []
         self.q_issued: dict[int, float] = {}
+        self._buf = np.empty(0)
+
+    def arr(self, lo: int, hi: int) -> np.ndarray:
+        """Read-only view of scores[lo:hi] (no copy)."""
+        return self._buf[max(0, lo):hi]
 
     def setup(self, warm: np.ndarray) -> None:
         """Called once with the W0 warm-up scores, before any evaluated interval."""
@@ -63,6 +68,9 @@ class Method:
         if t != len(self.scores):
             raise RuntimeError(f"scores must arrive in order: got {t}, expected {len(self.scores)}")
         self.scores.append(s)
+        if t >= len(self._buf):                                   # numpy mirror for fast windows
+            self._buf = np.concatenate([self._buf, np.empty(max(1024, len(self._buf)))])
+        self._buf[t] = s
         if self.copies is not None and t in self.q_issued:          # ACI copy update
             err = float(s > self.q_issued[t])
             j = t % self.h
@@ -98,7 +106,7 @@ class FixedWindow(Method):
         self.W = W
 
     def _window(self, m):
-        return np.asarray(self.scores[max(0, m - self.W):m])
+        return self.arr(m - self.W, m)
 
 
 class ACI(FixedWindow):
@@ -232,7 +240,7 @@ class DTCWR(Method):
 
     def _window(self, m):
         n = min(self.W_L, max(self.W_S, self.n_post(m)), m)
-        return np.asarray(self.scores[m - n:m])
+        return self.arr(m - n, m)
 
 
 def max_block_z(d: np.ndarray, min_len: int = 1) -> tuple[float, int]:
@@ -260,8 +268,12 @@ def run_stream(method: Method, scores: np.ndarray, warm: int = W0) -> Method:
     return method
 
 
-def replay(method: Method, y: np.ndarray, yhat: np.ndarray, warm: int = W0) -> dict:
-    """Run one method over one stream. Returns per-target q and coverage (NaN where not evaluated)."""
+def replay(method: Method, y: np.ndarray, yhat: np.ndarray, warm: int = W0,
+           clip_inf: bool = False) -> dict:
+    """Run one method over one stream. Returns per-target q and coverage (NaN where not evaluated).
+    clip_inf (decision D10): an issued q = +inf is replaced in the OUTPUT by the largest score known
+    at the issuing origin, as in the PID repo's "ACI (clipped)". The method's own updates still
+    see the interval it issued. n_clipped counts the replaced intervals."""
     s = np.abs(np.asarray(y, float) - np.asarray(yhat, float))
     N, h = len(s), method.h
     tau0 = warm + h
@@ -269,13 +281,18 @@ def replay(method: Method, y: np.ndarray, yhat: np.ndarray, warm: int = W0) -> d
         raise ValueError("stream shorter than warm-up + h")
     method.setup(s[:warm])
     q = np.full(N, np.nan)
+    n_clip = 0
     for tau in range(h, N):
         method.observe(tau - h, s[tau - h])        # the newest score known at origin tau - h
         q[tau] = method.predict(tau)               # intervals before tau0 are warm-up only
+        if clip_inf and q[tau] == math.inf:
+            q[tau] = float(s[:tau - h + 1].max())
+            n_clip += tau >= tau0
     evaluated = np.zeros(N, bool)
     evaluated[tau0:] = True
     covered = np.where(evaluated, s <= q, False)
-    return {"q": q, "score": s, "evaluated": evaluated, "covered": covered, "tau0": tau0}
+    return {"q": q, "score": s, "evaluated": evaluated, "covered": covered, "tau0": tau0,
+            "n_clipped": int(n_clip)}
 
 
 # ----------------------------------------------------------------------------- metrics

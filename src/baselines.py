@@ -47,6 +47,7 @@ ECI_CUTOFF_WINDOW = 100     # hard-coded in the ECI code (ECI_cutoff sets T_burn
 # when the data are present). On P-main we keep c * sigma0 at that value (decision D9),
 # because c = 1 on raw kW scores would switch the error-quantification term off.
 ECI_C_REL = 0.0185
+PUB_SCALE = ECI_C_REL       # robust score scale of the authors' Elec2 run (same number)
 
 
 def robust_scale(x: np.ndarray) -> float:
@@ -98,9 +99,16 @@ class ConformalPID(_Tracker):
     """
     name = "pid"
 
-    def __init__(self, alpha, h, lr, Csat=5.0, KI=10.0, lr_window=PID_BURNIN, proportional_lr=True):
+    def __init__(self, alpha, h, lr, Csat=5.0, KI=10.0, lr_window=PID_BURNIN, proportional_lr=True,
+                 KI_scaled: bool = False):
         super().__init__(alpha, h, lr, lr_window, proportional_lr)
-        self.Csat, self.KI = Csat, KI
+        self.Csat, self.KI, self.KI_pub, self.KI_scaled = Csat, KI, KI, KI_scaled
+
+    def setup(self, warm):
+        """KI has the units of the score. KI_scaled=True (P-main) rescales it so that
+        KI / score scale equals its value in the published Elec2 run (decision D10)."""
+        if self.KI_scaled:
+            self.KI = self.KI_pub * robust_scale(np.asarray(warm, float)) / PUB_SCALE
 
     def _integrator(self, t: int) -> float:
         if self.KI == 0:
@@ -212,6 +220,17 @@ def pinball(beta: float, theta: float, alpha: float) -> float:
     return alpha * d - min(0.0, d)
 
 
+def _qsorted(srt: np.ndarray, p: float) -> float:
+    """cb.qhat on an already sorted window (same convention)."""
+    if p <= 0:
+        return -math.inf
+    n = len(srt)
+    if p > 1:
+        return math.inf
+    k = math.ceil(p * (n + 1))
+    return math.inf if k > n else float(srt[k - 1])
+
+
 class DtACI(cb.Method):
     """
     Dynamically-tuned ACI (Alg. 2: output the weighted average of the experts' alphas).
@@ -234,7 +253,7 @@ class DtACI(cb.Method):
         self.pending: dict[int, tuple] = {}   # target -> (m, expert q's) at issue
 
     def _win(self, m):
-        return np.asarray(self.scores[max(0, m - self.W):m])
+        return self.arr(m - self.W, m)
 
     def predict(self, tau):
         m = len(self.scores)
@@ -243,8 +262,9 @@ class DtACI(cb.Method):
         win = self._win(m)
         p = self.w / self.w.sum()
         a_bar = float(p @ self.a)
-        qs = np.array([cb.qhat(win, 1 - a) if len(win) else math.inf for a in self.a])
-        q = cb.qhat(win, 1 - a_bar) if len(win) else math.inf
+        srt = np.sort(win)                       # one sort, then every level is an index
+        qs = np.array([_qsorted(srt, 1 - a) for a in self.a])
+        q = _qsorted(srt, 1 - a_bar)
         self.pending[tau] = (m, qs, self.a.copy())
         self.q_issued[tau] = q
         return q
