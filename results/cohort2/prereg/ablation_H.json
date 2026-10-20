@@ -1,0 +1,56 @@
+{
+  "electricity_h1": {
+    "config": {
+      "W_S": 96,
+      "W_L": 336,
+      "k": 0.5,
+      "c": 0
+    },
+    "prewhiten": true,
+    "D_magnitude_anchored": {
+      "H": 6,
+      "fa_at_H": 0.3978947368421052
+    },
+    "B_magnitude_reset": {
+      "H": 6,
+      "fa_at_H": 0.3978947368421052
+    },
+    "A_miss_anchored": {
+      "H": 1.7,
+      "fa_at_H": 0.45263157894736833,
+      "warning": ""
+    },
+    "R_miss_reset": {
+      "H": 1.7,
+      "fa_at_H": 0.4947368421052631,
+      "warning": ""
+    }
+  },
+  "electricity_h24": {
+    "config": {
+      "W_S": 168,
+      "W_L": 720,
+      "k": 0.5,
+      "c": 72
+    },
+    "prewhiten": false,
+    "D_magnitude_anchored": {
+      "H": 20,
+      "fa_at_H": 0.34736842105263155
+    },
+    "B_magnitude_reset": {
+      "H": 20,
+      "fa_at_H": 0.34736842105263155
+    },
+    "A_miss_anchored": {
+      "H": 3.0,
+      "fa_at_H": 0.3810526315789474,
+      "warning": ""
+    },
+    "R_miss_reset": {
+      "H": 3.0,
+      "fa_at_H": 0.42736842105263156,
+      "warning": ""
+    }
+  }
+}
