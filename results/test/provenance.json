@@ -1,0 +1,24 @@
+{
+  "runs": [
+    {
+      "stream": "electricity_h1",
+      "head": "2b5196e392363e9e9b05aee6950ee40479f83ef6",
+      "prereg_tag": "prereg-c2",
+      "prereg_commit": "2b5196e392363e9e9b05aee6950ee40479f83ef6",
+      "dirty": [],
+      "allow_dirty": false,
+      "seconds": 2217,
+      "rows": 49700
+    },
+    {
+      "stream": "electricity_h24",
+      "head": "2b5196e392363e9e9b05aee6950ee40479f83ef6",
+      "prereg_tag": "prereg-c2",
+      "prereg_commit": "2b5196e392363e9e9b05aee6950ee40479f83ef6",
+      "dirty": [],
+      "allow_dirty": false,
+      "seconds": 1495,
+      "rows": 49700
+    }
+  ]
+}
