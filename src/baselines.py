@@ -338,6 +338,7 @@ class DriftOCP(cb.Method):
         self.stage, self.r = 1, 1
         self.round_start = 0          # stream index of the first score of the current round
         self.round: list[float] = []
+        self._scan = cb.PrefixScan(min_len)
         self.alarms: list[tuple] = []
 
     def predict(self, tau):
@@ -358,14 +359,16 @@ class DriftOCP(cb.Method):
 
     def _on_observe(self, t, s):
         self.round.append(s)
-        d = (np.asarray(self.round) <= self.q).astype(float) - (1 - self.alpha)
-        z, j = cb.max_block_z(d, self.min_len)
+        self._scan.append(float(s <= self.q) - (1 - self.alpha))     # q is fixed within a round
+        z, j = self._scan.stat()
         if z > self.threshold():
             self.alarms.append((t, "miss", self.round_start + j))
             self.stage, self.r = self.stage + 1, 1          # q carried over
             self.round_start, self.round = t + 1, []
+            self._scan.reset()
             return
         if len(self.round) >= 3 ** self.r:
             self.q = self.round_quantile(np.asarray(self.round), self.alpha)
             self.r += 1
             self.round_start, self.round = t + 1, []
+            self._scan.reset()

@@ -142,7 +142,7 @@ class DTCWR(Method):
             raise ValueError((signal, window_rule))
         self.needs_predict = signal == "miss"     # the miss signal needs the issued intervals
         self.miss_min = miss_min
-        self.scan: list[float] = []               # miss signal: e_t - alpha since the scan start
+        self._scan = PrefixScan(miss_min, W_L)    # miss signal: e_t - alpha since the scan start
         self.scan_t0 = 0
         self.prewhiten = prewhiten
         self.phi = 0.0                    # AR(1) coefficient of z, fitted on warm-up (prewhiten only)
@@ -220,14 +220,12 @@ class DTCWR(Method):
         if self.paused:
             self.post.append(s)
             if len(self.post) >= self.W_S:
-                self.paused, self.scan, self.scan_t0 = False, [], t + 1
+                self.paused, self.scan_t0 = False, t + 1
+                self._scan.reset()
             return
         e = float(s > self.q_issued.get(t, math.inf))
-        self.scan.append(e - self.alpha)
-        if len(self.scan) > self.W_L:
-            self.scan.pop(0)
-            self.scan_t0 += 1
-        z, j = max_block_z(np.asarray(self.scan), self.miss_min)
+        self._scan.append(e - self.alpha)
+        z, j = self._scan.stat()
         if z > self.cs.H and t - self.t_alarm >= self.c:
             tau_hat = self.scan_t0 + j
             self.anchor = tau_hat if self.window_rule == "anchored" else t + 1
@@ -241,6 +239,37 @@ class DTCWR(Method):
     def _window(self, m):
         n = min(self.W_L, max(self.W_S, self.n_post(m)), m)
         return self.arr(m - n, m)
+
+
+class PrefixScan:
+    """Incremental version of max_block_z over the last `cap` appended values (O(n) numpy per
+    step, no list copies). j returned by stat() is the index of the block start counted from the
+    first value appended since the last reset()."""
+
+    def __init__(self, min_len: int = 1, cap: int = 10**9):
+        self.min_len, self.cap = min_len, cap
+        self.reset()
+
+    def reset(self):
+        self.ps = np.zeros(1025)
+        self.n = 0
+
+    def append(self, d: float):
+        if self.n + 1 >= len(self.ps):
+            self.ps = np.concatenate([self.ps, np.zeros(len(self.ps))])
+        self.ps[self.n + 1] = self.ps[self.n] + d
+        self.n += 1
+
+    def stat(self) -> tuple[float, int]:
+        n = self.n
+        lo = max(0, n - self.cap)
+        hi = n - self.min_len                      # last admissible block start
+        if hi < lo:
+            return 0.0, 0
+        tails = self.ps[n] - self.ps[lo:hi + 1]
+        z = np.abs(tails) / np.sqrt(n - np.arange(lo, hi + 1))
+        i = int(np.argmax(z))
+        return float(z[i]), lo + i
 
 
 def max_block_z(d: np.ndarray, min_len: int = 1) -> tuple[float, int]:

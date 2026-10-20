@@ -333,6 +333,15 @@ def test_max_block_z():
     z, j = cb.max_block_z(d, 1)
     assert j == 10 and math.isclose(z, 2.0)
     assert cb.max_block_z(np.ones(3), 5) == (0.0, 0)
+    rng = np.random.default_rng(0)
+    d = rng.normal(0, 1, 500)
+    ps = cb.PrefixScan(min_len=7, cap=120)
+    for i, v in enumerate(d):
+        ps.append(v)
+        lo = max(0, i + 1 - 120)
+        z_ref, j_ref = cb.max_block_z(d[lo:i + 1], 7)
+        z, j = ps.stat()
+        assert math.isclose(z, z_ref, rel_tol=1e-9, abs_tol=1e-12) and (z == 0 or j == lo + j_ref)
 
 
 if __name__ == "__main__":

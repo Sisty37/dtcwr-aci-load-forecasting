@@ -1,0 +1,22 @@
+{
+  "chosen": {
+    "w_h": 84,
+    "delta": 0.025,
+    "L_over_w": 1.0
+  },
+  "reason": "strictest cell meeting the rule",
+  "max_rate_by_cell": {
+    "w=84h,delta=0.025,L/w=0.5": 0.0133,
+    "w=84h,delta=0.025,L/w=1.0": 0.04,
+    "w=84h,delta=0.05,L/w=0.5": 0.0133,
+    "w=84h,delta=0.05,L/w=1.0": 0.0133,
+    "w=168h,delta=0.025,L/w=0.5": 0.0533,
+    "w=168h,delta=0.025,L/w=1.0": 0.12,
+    "w=168h,delta=0.05,L/w=0.5": 0.0267,
+    "w=168h,delta=0.05,L/w=1.0": 0.0667,
+    "w=336h,delta=0.025,L/w=0.5": 0.1067,
+    "w=336h,delta=0.025,L/w=1.0": 0.3333,
+    "w=336h,delta=0.05,L/w=0.5": 0.08,
+    "w=336h,delta=0.05,L/w=1.0": 0.1133
+  }
+}
