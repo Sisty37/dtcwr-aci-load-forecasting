@@ -3,15 +3,17 @@ Paper figures, vector PDF only (IEEE two-column: 3.5 in single, 7.16 in double c
 
 Main paper
   Fig. 1  fig1_method            DTCW-R+ACI pipeline and the anchored calibration window (diagram)
-  Fig. 2  fig2_protocol          splits and the pre-registered two-cohort sequence (diagram)
-  Fig. 3  fig3_tradeoff          dot plots per method: relative Winkler (untouched test) | RMST of TTR
-                                 (shifts), rows of panels h = 1 / 24, both cohorts
+  Fig. 2  fig2_replication       single column: every confirmatory verdict (6 families x 9 baselines),
+                                 cohort 1 vs cohort 2 side by side
+  Fig. 3  fig3_tradeoff          scatter: relative Winkler (untouched test) vs RMST of TTR (shifts),
+                                 h = 1 / 24, both cohorts
   Fig. 4  fig4_rolling_coverage  rolling coverage around one injected variance shift (kappa = 2, 45%),
                                  representative cohort-1 client chosen by rule (median DTCW-R+ACI RMST)
 Supplement
   Fig. S1 figS1_cd_cohort1       Nemenyi critical-difference diagrams, cohort 1
   Fig. S2 figS2_cd_cohort2       the same, cohort 2
   Fig. S3 figS3_aci_layer        exploratory: DTCW-R+ACI vs DTCW-R alone and vs ACI alone (RMST)
+  Fig. S4 figS4_protocol         splits and the pre-registered sequence (the paper describes it in text)
 All of them are also collected in all_figures.pdf. Old file names and PNGs are removed.
 
 Run from the project root (main working copy, after src/combine_cohorts.py):
@@ -118,55 +120,48 @@ def fig_cd(report: dict, cohort: str, name: str):
 
 
 # ----------------------------------------------------------------------------- Fig. 1
-ORDER = ["DTCW-R+ACI", "DTCW-R", "ACI", "DtACI", "Conformal PID", "ECI-cutoff", "ROCP", "DriftOCP",
-         "Fixed 168", "Fixed 720", "Fixed 2160"]
+# label placement (points, alignment[, leader line]) so labels do not collide; default right-above
+LABEL_POS = {
+    (1, "ACI"): (-6, 2, "right"), (1, "ECI-cutoff"): (-6, -3, "right"),
+    (1, "Conformal PID"): (-6, -6, "right"), (1, "DTCW-R+ACI"): (8, -4, "left"),
+    (1, "Fixed 168"): (36, -10, "left", True), (1, "DTCW-R"): (-2, 8, "center"),
+    (24, "DtACI"): (12, -3, "left"), (24, "ROCP"): (-7, 0, "right"),
+    (24, "Fixed 168"): (10, -6, "left"), (24, "DTCW-R"): (10, 2, "left"),
+    (24, "ECI-cutoff"): (0, 7, "center"), (24, "Conformal PID"): (0, -12, "right"),
+}
 
 
 def fig1(tb: pd.DataFrame):
-    """Fig. 3: the trade-off as aligned dot plots. Rows = methods (same order everywhere);
-    columns = width on untouched test streams | recovery after shifts; one row of panels per
-    horizon. Filled circle = cohort 1, open square = cohort 2."""
-    fig, axes = plt.subplots(2, 2, figsize=(7.16, 4.3), sharey=True,
-                             gridspec_kw={"wspace": 0.08, "hspace": 0.42})
-    cols = [("rel_winkler_L2", "Relative Winkler score, untouched test\n(lower = narrower calibrated intervals)", False),
-            ("rmst_L1", "RMST of time-to-recover after shifts, steps\n(lower = faster recovery)", True)]
-    ypos = {m: i for i, m in enumerate(ORDER)}
-    for r, h in enumerate((1, 24)):
-        t = tb[tb.h == h].set_index("method")
-        for c, (key, xlabel, logx) in enumerate(cols):
-            ax = axes[r, c]
-            ax.axhspan(-0.5, 0.5, color=LIGHT_BLUE, alpha=0.55, lw=0, zorder=0)
-            for m in ORDER:
-                if m not in t.index:
-                    continue
-                y = ypos[m]
-                col = GROUP.get(m, INK2)
-                v1, v2 = t.loc[m, f"{key}_c1"], t.loc[m, f"{key}_c2"]
-                ax.plot([v1, v2], [y, y], color=col, lw=1.0, alpha=0.6, zorder=2)
-                ax.plot([v1], [y], "o", ms=4.6, color=col, mec=SURF, mew=0.8, zorder=3)
-                ax.plot([v2], [y], "s", ms=4.4, mfc=SURF, mec=col, mew=1.1, zorder=3)
-            if logx:
-                ax.set_xscale("log")
-                ax.set_xticks([100, 200, 300, 500])
-                ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-                ax.get_xaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
-            ax.grid(axis="y", visible=False)
-            ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)") +
-                         (" - width" if c == 0 else " - recovery"), color=INK, loc="left", fontsize=7.5)
-            if r == 1:
-                ax.set_xlabel(xlabel)
-    axes[0, 0].set_yticks(range(len(ORDER)))
-    axes[0, 0].set_yticklabels(ORDER)
-    for lab in axes[0, 0].get_yticklabels() + axes[1, 0].get_yticklabels():
-        if lab.get_text() == "DTCW-R+ACI":
-            lab.set_fontweight("bold")
-            lab.set_color(INK)
-    axes[0, 0].set_ylim(len(ORDER) - 0.5, -0.5)
-    handles = [plt.Line2D([], [], marker="o", ms=4.5, ls="", color=INK2, label="Cohort 1 (50 clients)"),
-               plt.Line2D([], [], marker="s", ms=4.5, ls="", mfc=SURF, mec=INK2,
-                          label="Cohort 2, pre-registered replication (50 new clients)")]
-    fig.legend(handles=handles, loc="upper center", ncol=2, frameon=False, bbox_to_anchor=(0.55, 1.01))
-    fig.subplots_adjust(left=0.14, right=0.99, top=0.90, bottom=0.13)
+    """Fig. 3: scatter of relative Winkler (untouched test, x) vs RMST of TTR (shifts, y), one panel
+    per horizon; filled circle = cohort 1, open square = cohort 2, joined per method."""
+    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.75), sharey=True)
+    for ax, h in zip(axes, (1, 24)):
+        t = tb[tb.h == h]
+        for _, r in t.iterrows():
+            m = r["method"]
+            col = GROUP.get(m, INK2)
+            main = m == "DTCW-R+ACI"
+            x1, y1, x2, y2 = r.rel_winkler_L2_c1, r.rmst_L1_c1, r.rel_winkler_L2_c2, r.rmst_L1_c2
+            ax.plot([x1, x2], [y1, y2], color=col, lw=1.0, alpha=0.6, zorder=2)
+            ax.scatter([x1], [y1], s=34 if main else 22, color=col, edgecolor=SURF, linewidth=1.0, zorder=3)
+            ax.scatter([x2], [y2], s=34 if main else 22, facecolor=SURF, edgecolor=col, linewidth=1.2,
+                       zorder=3, marker="s")
+            dx, dy, ha, *lead = LABEL_POS.get((h, m), (5, 3, "left"))
+            arrow = dict(arrowstyle="-", color=INK2, lw=0.5, shrinkA=0, shrinkB=3) if lead else None
+            ax.annotate(m, (x1, y1), xytext=(dx, dy), textcoords="offset points", fontsize=6.5, ha=ha,
+                        va="center" if lead else "baseline", arrowprops=arrow,
+                        color=INK if col != INK2 else INK2, fontweight="bold" if main else "normal")
+        ax.set_yscale("log")
+        ax.set_yticks([100, 200, 300, 500])
+        ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        ax.get_yaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
+        ax.set_xlabel("Relative Winkler score, untouched test (lower is better)")
+        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK)
+    axes[0].set_ylabel("RMST of time-to-recover (steps, lower is better)")
+    handles = [plt.Line2D([], [], marker="o", ms=4.5, ls="", color=INK2, label="Cohort 1"),
+               plt.Line2D([], [], marker="s", ms=4.5, ls="", mfc=SURF, mec=INK2, label="Cohort 2 (replication)")]
+    axes[1].legend(handles=handles, loc="lower left", frameon=False)
+    fig.tight_layout()
     save(fig, "fig3_tradeoff")
 
 
@@ -248,114 +243,319 @@ def _arrow(ax, x0, y0, x1, y1, color=INK2, ls="-", rad=0.0, lw=0.9):
                                  shrinkA=0, shrinkB=0))
 
 
+def _stage_box(ax, x, y, w, h, title, eq, ec, fc=SURF):
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.004,rounding_size=0.015",
+                                fc=fc, ec=ec, lw=1.1, zorder=3))
+    ax.text(x + w / 2, y + h * 0.70, title, ha="center", va="center", fontsize=7, color=INK,
+            fontweight="bold", zorder=4)
+    ax.text(x + w / 2, y + h * 0.33, eq, ha="center", va="center", fontsize=6.6, color=INK, zorder=4,
+            linespacing=1.5)
+
+
+def _bracket(ax, x0, x1, y, text, color, tx=None, ha="center", beside=False):
+    ax.annotate("", xy=(x0, y), xytext=(x1, y),
+                arrowprops=dict(arrowstyle="|-|", color=color, lw=1.0, shrinkA=0, shrinkB=0,
+                                mutation_scale=3))
+    if beside:                                   # label to the right of a short bracket
+        ax.text(x1 + 6, y, text, ha="left", va="center", fontsize=6.0, color=color)
+    else:
+        ax.text((x0 + x1) / 2 if tx is None else tx, y + 0.35, text, ha=ha, va="bottom",
+                fontsize=6.0, color=color)
+
+
+def _toy_stream(seed=7, n=200, shift=120):
+    """Synthetic stream used only to draw Fig. 1 (not data)."""
+    rng = np.random.default_rng(seed)
+    t = np.arange(n)
+    yhat = 10 + 3 * np.sin(2 * np.pi * t / 24)
+    sd = np.where(t >= shift, 2.3, 1.0)
+    y = yhat + rng.normal(0, 1, n) * sd
+    s = np.abs(y - yhat)
+    r = np.log(s / np.median(s[:100]) * 0.6745 + 1e-6)
+    z = np.maximum((r - r[:100].mean()) / r[:100].std(), -1.5)
+    g, last0, alarm, tau_hat = np.zeros(n), 0, None, None
+    for k in range(1, n):
+        g[k] = max(0.0, g[k - 1] + z[k] - 0.5)
+        if g[k] == 0:
+            last0 = k
+        if alarm is None and k > 100 and g[k] > 6:
+            alarm, tau_hat = k, last0 + 1
+    if alarm is not None:
+        g[alarm + 1:] = np.nan
+    return t, y, yhat, s, g, alarm, tau_hat
+
+
 def fig_method():
-    """Fig. 1: DTCW-R(+ACI) pipeline (top) and the anchored window around an alarm (bottom)."""
-    fig = plt.figure(figsize=(7.16, 3.45))
-    ax = fig.add_axes([0, 0.44, 1, 0.56])
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.axis("off")
-    y, h, gap = 0.40, 0.42, 0.02
-    spec = [(0.13, "Forecast $\\hat y_{t|t-h}$\n(frozen LightGBM);\n$y_t$ arrives\nh steps later"),
-            (0.145, "Score\n$s_t=|y_t-\\hat y_{t|t-h}|$,\nstandardised log,\nwinsorised"),
-            (0.16, "Magnitude CUSUM\ntwo-sided, threshold H\nat 0.5 false alarms\nper 1,000 steps"),
-            (0.19, "Anchored window\nstarts at change point $\\hat\\tau$\n$n_t=\\min(W_L,\\max(W_S,n_{post}))$\nre-baseline, cooldown c"),
-            (0.13, "Conformal\nquantile $\\hat q_t$\nof window scores\nat level $1-\\alpha_t$"),
-            (0.10, "Interval\n$\\hat y\\pm\\hat q_t$")]
-    x, pos = 0.02, []
-    for i, (w, t) in enumerate(spec):
-        main = i in (2, 3)
-        _box(ax, x, y, w, h, t, fc=LIGHT_BLUE if main else PALE, ec=BLUE if main else INK2, fs=6.3)
-        if i:
-            _arrow(ax, pos[-1][0] + pos[-1][1], y + h / 2, x, y + h / 2)
-        pos.append((x, w))
-        x += w + gap
-    cx, cw = pos[2]
-    wx, ww = pos[3]
-    qx, qw = pos[4]
-    ix, iw = pos[5]
-    _arrow(ax, cx + cw * 0.5, y, wx + ww * 0.5, y, color=BLUE, ls="--", rad=0.35)
-    ax.text((cx + wx + ww) / 2 + 0.01, 0.13, "alarm at $t_a$: anchor $\\hat\\tau$, pause $W_S$ steps",
-            fontsize=6, color=BLUE, ha="center")
-    ax_x0 = qx
-    _box(ax, ax_x0, 0.02, ix + iw - ax_x0, 0.24,
-         "ACI layer: h interleaved copies $\\alpha^{(j)}_t$;\n"
-         "$\\alpha^{(j)}\\leftarrow\\alpha^{(j)}+\\gamma(\\alpha-\\mathrm{miss}_t)$ when $y_t$ arrives",
-         fc=LIGHT_BLUE, ec=BLUE, fs=6.1)
-    _arrow(ax, ix + iw * 0.5, y, ix + iw * 0.5, 0.26)
-    _arrow(ax, qx + qw * 0.5, 0.26, qx + qw * 0.5, y)
-    ax.text(ix + iw * 0.5 + 0.005, 0.33, "miss, h late", fontsize=5.6, color=INK2, va="center")
-    ax.text(qx + qw * 0.5 + 0.005, 0.33, "$\\alpha_t$", fontsize=6.3, color=INK2, va="center")
-    ax.text(0.02, 0.92, "(a) DTCW-R+ACI pipeline (every quantity uses only scores known at the forecast origin)",
-            fontsize=7, color=INK, fontweight="bold")
-    # (b) timeline
-    tx = fig.add_axes([0.03, 0.07, 0.95, 0.33])
-    t = np.arange(0, 400)
-    rng = np.random.default_rng(3)
-    sc = np.abs(rng.normal(0, 1, 400)) * np.where(t >= 200, 2.4, 1.0)
-    tx.plot(t, sc + 0.3, color=INK2, lw=0.6)
-    tau, ta, WS = 200, 238, 48
-    tx.axvline(tau, color=ORANGE, lw=1.0)
-    tx.axvline(ta, color=BLUE, lw=1.0, ls="--")
-    rows = [(-1.4, 60, tau, INK2, 0.30, "window before the alarm (last $W_L$ scores)"),
-            (-3.0, tau, 400, BLUE, 0.35, "anchored window after the alarm: starts at $\\hat\\tau$, grows to $W_L$"),
-            (-4.6, ta, ta + WS, ORANGE, 0.45, "a hard reset (2x2 ablation) would start at $t_a$ with only $W_S$ scores")]
-    for yy, a, b, col, al, lab in rows:
-        tx.add_patch(Rectangle((a, yy), b - a, 0.9, color=col, alpha=al, lw=0))
-        tx.text(a + 2 if col != INK2 else a, yy + 0.45, "  " + lab, fontsize=5.8, va="center", color=INK,
-                ha="left")
-    tx.text(tau - 3, 8.3, "true shift $\\tau$ ($\\approx\\hat\\tau$)", fontsize=5.8, ha="right", color=ORANGE)
-    tx.text(ta + 3, 8.3, "alarm $t_a$", fontsize=5.8, color=BLUE)
-    tx.set_ylim(-5.0, 9.2)
-    tx.set_xlim(0, 400)
-    tx.set_yticks([])
-    tx.set_xticks([])
-    tx.grid(False)
-    tx.spines["left"].set_visible(False)
-    tx.set_xlabel("time (targets) $\\rightarrow$", fontsize=6.5, labelpad=1)
-    tx.text(0, 9.6, "(b) Scores $s_t$ around a variance shift, and which scores enter the calibration window",
-            fontsize=7, color=INK, fontweight="bold")
+    """Fig. 1: the method as five illustrated stages (each tile draws its own step on one toy
+    stream) plus the ACI feedback loop."""
+    t, y, yhat, s, g, ta, th = _toy_stream()
+    H, WL, WS = 6.0, 90, 24
+    fig = plt.figure(figsize=(7.16, 3.25))
+    ov = fig.add_axes([0, 0, 1, 1], zorder=0)
+    ov.set_xlim(0, 1)
+    ov.set_ylim(0, 1)
+    ov.axis("off")
+    w, gap, x0 = 0.172, 0.027, 0.015
+    xs = [x0 + k * (w + gap) for k in range(5)]
+    ty0, ty1 = 0.37, 0.93
+    # stage groups
+    for a, b, col, lab in ((1, 2, "#f3f2ee", "change detection"), (3, 4, "#e8f1fc", "calibration")):
+        gx0, gx1 = xs[a] - 0.009, xs[b] + w + 0.009
+        yb = 0.025 if a == 3 else ty0 - 0.02
+        ov.add_patch(FancyBboxPatch((gx0, yb), gx1 - gx0, 0.995 - yb, boxstyle="round,pad=0,rounding_size=0.015",
+                                    fc=col, ec="none", zorder=0))
+        ov.text((gx0 + gx1) / 2, 0.965, lab, ha="center", va="center", fontsize=6.6, color=INK2,
+                style="italic")
+    titles = ["Score", "1  Detect", "2  Anchor", "3  Calibrate", "Interval"]
+    eqs = ["$s_t=|y_t-\\hat y_{t|t-h}|$",
+           "$g_t=\\max(0,g_{t-1}+z_t-k)$\nalarm if $g_t>H$",
+           "$\\hat\\tau$ = last zero of $g$\nbefore the alarm $t_a$",
+           "$n_t=\\mathrm{clip}(t-\\hat\\tau;\\,W_S,W_L)$\n$\\hat q_t=Q_{1-\\alpha_t}$(window)",
+           "$\\hat y_{t+h}\\pm\\hat q_t$"]
+    edge = [INK2, BLUE, BLUE, BLUE, INK2]
+    axs = []
+    for k, x in enumerate(xs):
+        ov.add_patch(FancyBboxPatch((x, ty0), w, ty1 - ty0, boxstyle="round,pad=0,rounding_size=0.012",
+                                    fc=SURF, ec=edge[k], lw=1.0, zorder=1))
+        ov.text(x + w / 2, ty1 - 0.035, titles[k], ha="center", va="center", fontsize=7, fontweight="bold",
+                color=INK, zorder=2)
+        ov.text(x + w / 2, ty0 + 0.065, eqs[k], ha="center", va="center", fontsize=6.4, color=INK,
+                zorder=2, linespacing=1.4)
+        a = fig.add_axes([x + 0.012, ty0 + 0.15, w - 0.024, 0.33], zorder=2)
+        a.set_xticks([])
+        a.set_yticks([])
+        a.grid(False)
+        for sp in ("top", "right", "left"):
+            a.spines[sp].set_visible(False)
+        a.spines["bottom"].set_color(GRID)
+        axs.append(a)
+        if k:
+            _arrow(ov, xs[k - 1] + w, ty0 + 0.31, x, ty0 + 0.31, color=INK, lw=1.0)
+    shift = 120
+    # tile 0: forecast and outcome
+    a = axs[0]
+    v = slice(84, 156)
+    a.plot(t[v], yhat[v], color=BLUE, lw=0.9, ls="--")
+    a.vlines(t[v], np.minimum(y[v], yhat[v]), np.maximum(y[v], yhat[v]), color=ORANGE, lw=0.6, alpha=0.7)
+    a.plot(t[v], y[v], ".", ms=2.2, color=INK2)
+    a.axvline(shift, color=ORANGE, lw=0.8)
+    # tile 1: CUSUM
+    a = axs[1]
+    a.plot(t, g, color=BLUE, lw=0.9)
+    a.axhline(H, color=INK2, lw=0.7, ls="--")
+    a.text(2, H + 0.3, "H", fontsize=6, color=INK2, va="bottom")
+    a.plot([ta], [g[ta]], marker="o", ms=4, color=BLUE)
+    a.text(ta - 4, H - 0.6, "alarm $t_a$", fontsize=6.4, color=BLUE, ha="right", va="top")
+    a.set_ylim(-0.5, max(H, np.nanmax(g)) + 1.5)
+    # tile 2: anchor
+    a = axs[2]
+    lo = th - 25
+    a.plot(t[lo:ta + 1], g[lo:ta + 1], color=BLUE, lw=0.9)
+    a.axhline(H, color=INK2, lw=0.7, ls="--")
+    a.plot([th - 1], [0], marker="^", ms=5, color=ORANGE)
+    a.plot([ta], [g[ta]], marker="o", ms=4, color=BLUE)
+    a.annotate("", xy=(th, 0.6), xytext=(ta - 1, g[ta] - 0.3),
+               arrowprops=dict(arrowstyle="-|>", color=ORANGE, lw=0.8, mutation_scale=6,
+                               connectionstyle="arc3,rad=0.3"))
+    a.text(th + 1, -0.4, "$\\hat\\tau$", fontsize=7, color=ORANGE, va="top")
+    a.set_ylim(-1.2, max(H, np.nanmax(g)) + 1.0)
+    a.set_xlim(lo, ta + 4)
+    # tile 3: window
+    a = axs[3]
+    a.bar(t, s, width=1.0, color=INK2, alpha=0.55, lw=0)
+    win_old = (ta - WL, th)
+    a.axvspan(*win_old, color=INK2, alpha=0.12, lw=0)
+    a.axvspan(th, t[-1], color=BLUE, alpha=0.18, lw=0)
+    a.axvspan(ta, ta + WS, ymin=0.9, ymax=1.0, color=ORANGE, alpha=0.6, lw=0)
+    qn = np.quantile(s[th:th + 60], 0.9)
+    qo = np.quantile(s[win_old[0]:win_old[1]], 0.9)
+    a.plot([win_old[0], th], [qo, qo], color=INK2, lw=1.0)
+    a.plot([th, t[-1]], [qn, qn], color=BLUE, lw=1.0)
+    a.text(t[-1], qn, " $\\hat q$", fontsize=6, color=BLUE, va="center", ha="left")
+    a.text((win_old[0] + win_old[1]) / 2, s.max() * 0.98, "old", fontsize=6.2, color=INK2, ha="center", va="top")
+    a.text((th + t[-1]) / 2, s.max() * 0.98, "from $\\hat\\tau$", fontsize=6.2, color=BLUE, ha="center", va="top")
+    a.set_xlim(win_old[0] - 5, t[-1] + 12)
+    # tile 4: interval band
+    a = axs[4]
+    q = np.full(len(t), np.nan)
+    for k in range(40, len(t)):
+        if ta is not None and k > ta + 1:
+            n = int(min(WL, max(WS, k - th)))
+        else:
+            n = min(WL, k)
+        q[k] = np.quantile(s[k - n:k], 0.9)
+    a.fill_between(t, yhat - q, yhat + q, color=BLUE, alpha=0.18, lw=0)
+    a.plot(t, yhat, color=BLUE, lw=0.8, ls="--")
+    a.plot(t, y, ".", ms=1.6, color=INK2)
+    a.axvline(shift, color=ORANGE, lw=0.8)
+    a.set_xlim(84, t[-1])
+    # ACI strip
+    ax_x, ax_w = xs[3], xs[4] + w - xs[3]
+    ov.add_patch(FancyBboxPatch((ax_x, 0.045), ax_w, 0.22, boxstyle="round,pad=0,rounding_size=0.012",
+                                fc=SURF, ec=BLUE, lw=1.0, zorder=1))
+    ov.text(ax_x + 0.012, 0.225, "4  Adapt the level (ACI, h interleaved copies)", fontsize=6.8,
+            fontweight="bold", color=INK, va="center", zorder=2)
+    ov.text(ax_x + 0.012, 0.10, "$\\alpha^{(j)}\\leftarrow\\alpha^{(j)}+\\gamma(\\alpha-\\mathrm{miss}_t)$\n"
+            "$j=t\\,\\mathrm{mod}\\,h$", fontsize=6.6, color=INK, va="center",
+            zorder=2, linespacing=1.4)
+    aa = fig.add_axes([ax_x + ax_w * 0.58, 0.065, ax_w * 0.39, 0.13], zorder=2)
+    rng = np.random.default_rng(1)
+    miss = (rng.random(160) < np.where(np.arange(160) > 80, 0.25, 0.1)).astype(float)
+    al = [0.1]
+    for m_ in miss:
+        al.append(al[-1] + 0.01 * (0.1 - m_))
+    aa.plot(al, color=BLUE, lw=0.8)
+    aa.axhline(0.1, color=INK2, lw=0.6, ls="--")
+    aa.text(1, 0.1, "$\\alpha$", fontsize=5.8, color=INK2, va="bottom")
+    aa.text(158, al[-1], "$\\alpha_t$", fontsize=5.8, color=BLUE, va="center", ha="left")
+    aa.axis("off")
+    _arrow(ov, xs[4] + w * 0.5, ty0, xs[4] + w * 0.5, 0.265, color=INK2)
+    ov.text(xs[4] + w * 0.5 + 0.005, 0.315, "miss$_t$ (h late)", fontsize=6.3, color=INK2, va="center")
+    _arrow(ov, xs[3] + w * 0.5, 0.265, xs[3] + w * 0.5, ty0, color=INK2)
+    ov.text(xs[3] + w * 0.5 + 0.005, 0.315, "$\\alpha_t$", fontsize=6.2, color=INK2, va="center")
+    # visual key instead of a block of notes (details go in the caption)
+    from matplotlib.patches import Patch
+    key = [plt.Line2D([], [], marker=".", ls="", ms=6, color=INK2, label="outcome $y_t$"),
+           plt.Line2D([], [], color=BLUE, ls="--", lw=1.0, label="forecast $\\hat y$"),
+           plt.Line2D([], [], color=ORANGE, lw=0.8, alpha=0.7, label="score $s_t$ (gap)"),
+           plt.Line2D([], [], color=ORANGE, lw=1.4, label="true shift"),
+           plt.Line2D([], [], marker="o", ls="", ms=5, color=BLUE, label="alarm $t_a$"),
+           plt.Line2D([], [], marker="^", ls="", ms=6, color=ORANGE, label="change point $\\hat\\tau$"),
+           Patch(fc=INK2, alpha=0.25, label="window before alarm"),
+           Patch(fc=BLUE, alpha=0.30, label="window from $\\hat\\tau$ (ours)"),
+           Patch(fc=ORANGE, alpha=0.6, label="hard reset (ablation)")]
+    fig.legend(handles=key, loc="lower left", bbox_to_anchor=(x0, 0.03), ncol=3, frameon=True,
+               fontsize=7, handlelength=1.6, columnspacing=1.2, labelspacing=0.7, borderpad=0.8,
+               title="Key", title_fontsize=7.2, edgecolor=GRID, facecolor=SURF)
     save(fig, "fig1_method")
 
 
+def _pill(ax, x, y, text, fc, ec, color, fs=6.6, mono=True):
+    """Text in a rounded badge (used for git tags)."""
+    ax.text(x, y, text, ha="left", va="center", fontsize=fs, color=color, fontweight="bold",
+            family="monospace" if mono else None,
+            bbox=dict(boxstyle="round,pad=0.25,rounding_size=0.6", fc=fc, ec=ec, lw=0.9))
+
+
 def fig_protocol():
-    """Fig. 2: splits and pre-registered timeline of the two cohorts."""
-    fig = plt.figure(figsize=(7.16, 2.1))
+    """Fig. 2 (single IEEE column, 3.5 in): (a) one series to scale with what each part is used
+    for; (b) the pre-registered sequence as a vertical timeline (tag badges = choices frozen)."""
+    fig = plt.figure(figsize=(3.5, 3.55))
     ax = fig.add_axes([0, 0, 1, 1])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.axis("off")
-    ax.text(0.01, 0.94, "(a) Every series, in time order (widths not to scale)", fontsize=7,
+    TEST_C, GREEN_C = "#fde0d3", "#d6f0e5"
+    # (a) splits
+    ax.text(0.03, 0.975, "(a) Each series, in time order", fontsize=7.2, fontweight="bold", color=INK, va="top")
+    x0, x1, yb, hb = 0.04, 0.96, 0.855, 0.05
+    W = x1 - x0
+    for a, b, col in ((0, 0.70, PALE), (0.70, 0.80, LIGHT_BLUE), (0.80, 1.0, TEST_C)):
+        ax.add_patch(Rectangle((x0 + W * a, yb), W * (b - a), hb, fc=col, ec=SURF, lw=1.2))
+    ax.text(x0 + W * 0.35, yb + hb / 2, "train 70%  (LightGBM, then frozen)", ha="center", va="center",
+            fontsize=6.4, color=INK)
+    ax.text(x0 + W * 0.75, yb + hb + 0.012, "val", ha="center", va="bottom", fontsize=6.3, color=BLUE)
+    ax.text(x0 + W * 0.90, yb + hb + 0.012, "test", ha="center", va="bottom", fontsize=6.3, color=ORANGE)
+    # zoom boxes
+    zy, zh = 0.675, 0.135
+    vb = (0.04, 0.43)
+    tb = (0.47, 0.96)
+    # colour links the zoom boxes to the bar segments; one short arrow from each segment
+    for (xa, xb), (sa, sb), col in ((vb, (0.70, 0.80), BLUE), (tb, (0.80, 1.0), ORANGE)):
+        _arrow(ax, x0 + W * (sa + sb) / 2, yb - 0.004, (xa + xb) / 2, zy + zh + 0.004, color=col, lw=0.8)
+    ax.add_patch(FancyBboxPatch((vb[0], zy), vb[1] - vb[0], zh, boxstyle="round,pad=0,rounding_size=0.02",
+                                fc=LIGHT_BLUE, ec=BLUE, lw=0.8))
+    ax.text((vb[0] + vb[1]) / 2, zy + zh - 0.022, "Validation 10%", ha="center", va="top", fontsize=6.6,
             fontweight="bold", color=INK)
-    x0, W, y0, hh = 0.01, 0.98, 0.70, 0.13
-    # schematic widths (not to scale: the true split is 70/10/20)
-    parts = [(0.40, "train 70%: fit LightGBM (direct), then frozen", PALE),
-             (0.24, "validation 10%: warm-up (500),\ntuning, H / TTR / sigma calibration", LIGHT_BLUE),
-             (0.36, "test 20%: sealed until the pre-registration tag;\none shift per replay at 15/30/45/60/75%",
-              "#fde0d3")]
-    x = x0
-    for frac, lab, col in parts:
-        ax.add_patch(Rectangle((x, y0), W * frac, hh, fc=col, ec=SURF, lw=2))
-        ax.text(x + W * frac / 2, y0 + hh / 2, lab, ha="center", va="center", fontsize=6.3, color=INK)
-        x += W * frac
+    ax.text((vb[0] + vb[1]) / 2, zy + 0.045, "warm-up, tuning,\ncalibration", ha="center", va="center",
+            fontsize=6.3, color=INK, linespacing=1.25)
+    ax.add_patch(FancyBboxPatch((tb[0], zy), tb[1] - tb[0], zh, boxstyle="round,pad=0,rounding_size=0.02",
+                                fc=TEST_C, ec=ORANGE, lw=0.8))
+    ax.text((tb[0] + tb[1]) / 2, zy + zh - 0.022, "Test 20%", ha="center", va="top", fontsize=6.6,
+            fontweight="bold", color=INK)
+    ax.text((tb[0] + tb[1]) / 2, zy + 0.060, "sealed until the tag; scored once", ha="center", va="center",
+            fontsize=6.2, color=INK)
     for f in (0.15, 0.30, 0.45, 0.60, 0.75):
-        xx = x0 + W * (0.64 + 0.36 * f)
-        ax.plot([xx, xx], [y0 - 0.03, y0], color=ORANGE, lw=1.0)
-    ax.text(0.01, 0.55, "(b) Pre-registered sequence (git tags)", fontsize=7, fontweight="bold", color=INK)
-    steps = [("Validation-only\ntuning, 16 configs\nper family", PALE, INK2),
-             ("prereg-v1(.1)\nconfigs, rules,\nhashes frozen", LIGHT_BLUE, BLUE),
-             ("Cohort 1 test\n50 clients\n+ Elec2", PALE, INK2),
-             ("c2-predictions\nR1-R6 written\nbefore new data", LIGHT_BLUE, BLUE),
-             ("Cohort 2: 50 fresh\nclients, same code,\nprereg-c2", PALE, INK2),
-             ("Cohort 2 test\nmain claim\nreplicated", "#d6f0e5", AQUA)]
-    n = len(steps)
-    bw, gap, by, bh = 0.145, 0.019, 0.10, 0.36
-    for i, (lab, fc, ec) in enumerate(steps):
-        bx = 0.01 + i * (bw + gap)
-        _box(ax, bx, by, bw, bh, lab, fc=fc, ec=ec, fs=6.3, bold=ec == BLUE)
-        if i:
-            _arrow(ax, bx - gap, by + bh / 2, bx, by + bh / 2)
-    save(fig, "fig2_protocol")
+        ax.plot([tb[0] + (tb[1] - tb[0]) * f], [zy + 0.022], marker="^", ms=3.6, color=ORANGE, ls="")
+    ax.text(tb[0] + (tb[1] - tb[0]) * 0.80, zy + 0.022, " shifts", fontsize=6.0, color=ORANGE,
+            va="center", ha="left")
+    # (b) vertical timeline
+    ax.text(0.03, 0.625, "(b) Pre-registered sequence", fontsize=7.2, fontweight="bold", color=INK, va="top")
+    events = [("run", "Tuning on validation only", "16 configs per method family"),
+              ("tag", "prereg-v1", "configs, rules, file hashes frozen"),
+              ("run", "Cohort 1 test", "50 clients + Elec2, opened once"),
+              ("tag", "c2-predictions", "R1-R6 written before new data"),
+              ("run", "50 fresh clients", "same code, re-tuned on validation"),
+              ("tag", "prereg-c2", "frozen again"),
+              ("end", "Cohort 2 test", "main claim replicated (R1-R3)")]
+    lx, top, bot = 0.20, 0.555, 0.045
+    ys = np.linspace(top, bot, len(events))
+    ax.plot([lx, lx], [top + 0.015, bot - 0.015], color=GRID, lw=2.2, solid_capstyle="round", zorder=1)
+    for (kind, name, desc), yy in zip(events, ys):
+        if kind == "tag":
+            ax.plot([lx], [yy], marker="D", ms=6.2, mfc=LIGHT_BLUE, mec=BLUE, mew=1.2, ls="", zorder=3)
+            _pill(ax, lx + 0.05, yy + 0.012, name, LIGHT_BLUE, BLUE, BLUE, fs=6.4)
+        else:
+            fc, ec = (GREEN_C, AQUA) if kind == "end" else (SURF, INK2)
+            ax.plot([lx], [yy], marker="o", ms=6.2, mfc=fc, mec=ec, mew=1.3, ls="", zorder=3)
+            ax.text(lx + 0.05, yy + 0.012, name, ha="left", va="center", fontsize=6.8, fontweight="bold",
+                    color=INK)
+        ax.text(lx + 0.05, yy - 0.026, desc, ha="left", va="center", fontsize=6.2, color=INK2)
+    # cohort brackets
+    for (a, b), lab, col in (((0, 2), "Cohort 1", INK2), ((3, 6), "Cohort 2", AQUA)):
+        ya, yb2 = ys[a] + 0.02, ys[b] - 0.02
+        ax.plot([0.085, 0.085], [yb2, ya], color=col, lw=2.0, solid_capstyle="round")
+        ax.text(0.05, (ya + yb2) / 2, lab, rotation=90, ha="center", va="center", fontsize=6.6,
+                color=col, fontweight="bold")
+    save(fig, "figS4_protocol")
+
+
+def fig_replication(cs: pd.DataFrame):
+    """Fig. 2 (single column): every confirmatory verdict of DTCW-R+ACI vs the 9 baselines, in
+    cohort 1 (left half of each cell) and the pre-registered replication cohort 2 (right half)."""
+    fams = [("RMST of TTR (L1 target)", "Recovery"), ("Winkler (L2)", "Width"),
+            ("Worst local coverage (L1 target)", "Worst\ncoverage")]
+    cols = [(h, f, lab) for h in (1, 24) for f, lab in fams]
+    base = ["Fixed 168", "Fixed 720", "Fixed 2160", "ACI", "DtACI", "Conformal PID", "ECI-cutoff",
+            "ROCP", "DriftOCP"]
+    style = {"better": (BLUE, "+", SURF), "worse": (ORANGE, "−", SURF), "no claim": ("#e6e5e0", "·", INK2)}
+    fig = plt.figure(figsize=(3.5, 3.35))
+    ax = fig.add_axes([0.25, 0.115, 0.73, 0.80])
+    ax.set_xlim(-0.5, len(cols) - 0.5 + 0.35)
+    ax.set_ylim(len(base) - 0.5, -2.35)
+    ax.axis("off")
+    cw, gap = 0.44, 0.03
+    for c, (h, fam, lab) in enumerate(cols):
+        xc = c + (0.35 if h == 24 else 0)
+        for r, b in enumerate(base):
+            row = cs[(cs.h == h) & (cs.family == fam) & (cs.baseline == b)]
+            if row.empty:
+                continue
+            for k, v in enumerate((row.verdict_c1.iloc[0], row.verdict_c2.iloc[0])):
+                fc, glyph, tc = style[v]
+                x = xc - cw - gap / 2 if k == 0 else xc + gap / 2
+                ax.add_patch(Rectangle((x, r - 0.42), cw, 0.84, fc=fc, ec=SURF, lw=0.6))
+                ax.text(x + cw / 2, r, glyph, ha="center", va="center", fontsize=7.5, color=tc,
+                        fontweight="bold")
+        ax.text(xc, -0.75, lab, ha="center", va="bottom", fontsize=6.4, color=INK, linespacing=1.1)
+    for h, c0 in ((1, 1), (24, 4.35)):
+        ax.text(c0, -1.85, f"h = {h}" + (" (one step)" if h == 1 else " (day ahead)"), ha="center",
+                va="bottom", fontsize=7, fontweight="bold", color=INK)
+        ax.plot([c0 - 1.45, c0 + 1.45], [-1.6, -1.6], color=INK2, lw=0.8)
+    for r, b in enumerate(base):
+        ax.text(-0.62, r, b, ha="right", va="center", fontsize=6.6, color=INK)
+    ax.text(-0.62, -0.75, "vs baseline", ha="right", va="bottom", fontsize=6.2, color=INK2, style="italic")
+    from matplotlib.patches import Patch
+    hd = [Patch(fc=BLUE, label="+ better"), Patch(fc=ORANGE, label="− worse"),
+          Patch(fc="#e6e5e0", label="· no claim")]
+    fig.legend(handles=hd, loc="lower center", ncol=3, frameon=False, fontsize=6.6,
+               bbox_to_anchor=(0.6, 0.035), handlelength=1.2, columnspacing=1.0)
+    fig.text(0.6, 0.01, "each cell: left = cohort 1, right = cohort 2 (replication)", ha="center",
+             fontsize=6.2, color=INK2)
+    same = (cs.verdict_c1 == cs.verdict_c2).sum()
+    fig.text(0.6, 0.975, f"DTCW-R+ACI vs 9 baselines: {same}/{len(cs)} verdicts identical in both cohorts",
+             ha="center", va="top", fontsize=6.6, color=INK, fontweight="bold")
+    save(fig, "fig2_replication")
 
 
 def fig_aci_layer(al: pd.DataFrame):
@@ -398,7 +598,8 @@ def main():
             f.unlink()                          # remove old names and PNGs
     _BOOK = PdfPages(OUT / "all_figures.pdf")
     fig_method()
-    fig_protocol()
+    cs = pd.read_csv("results/combined/confirmatory_side_by_side.csv")
+    fig_replication(cs)
     fig1(pd.read_csv("results/combined/table_b_side_by_side.csv"))
     t24 = pd.read_csv("results/test/electricity_h24.csv.gz", low_memory=False)
     name = representative_client(t24)
@@ -407,10 +608,11 @@ def main():
     fig_cd(json.loads(Path("results/cohort2/analysis/report.json").read_text()), "cohort 2 (replication)",
            "figS2_cd_cohort2")
     fig_aci_layer(pd.read_csv("results/combined/aci_layer.csv"))
+    fig_protocol()
     _BOOK.close()
     _BOOK = None
-    print(f"PDF figures in {OUT}: fig1_method, fig2_protocol, fig3_tradeoff, fig4_rolling_coverage, "
-          f"figS1_cd_cohort1, figS2_cd_cohort2, figS3_aci_layer, and all_figures.pdf (Fig. 4 client: {name})")
+    print(f"PDF figures in {OUT}: fig1_method, fig2_replication, fig3_tradeoff, fig4_rolling_coverage, "
+          f"figS1_cd_cohort1, figS2_cd_cohort2, figS3_aci_layer, figS4_protocol, and all_figures.pdf (Fig. 4 client: {name})")
 
 
 if __name__ == "__main__":
