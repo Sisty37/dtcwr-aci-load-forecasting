@@ -64,6 +64,19 @@ def positions(n: int, h: int, follow: int, n_pos: int = 3, lead: int = 150,
     return [int(round(first + k * (last - first) / (n_pos - 1))) for k in range(n_pos)]
 
 
+TEST_FRACS = (0.15, 0.30, 0.45, 0.60, 0.75)
+
+
+def test_positions(n_val: int, n_test: int, L: int, cap: int = TTR_CAP, fracs=TEST_FRACS) -> list[int]:
+    """Plan 6.3: shift times at 15/30/45/60/75% of the TEST segment, as indices of the
+    val + test stream. Every position must have cap + L steps of follow-up (asserted)."""
+    taus = [n_val + int(round(f * n_test)) for f in fracs]
+    follow = n_val + n_test - taus[-1]
+    if follow < cap + L:
+        raise ValueError(f"last position has {follow} steps of follow-up, needs cap + L = {cap + L}")
+    return taus
+
+
 # ----------------------------------------------------------------------------- metrics
 def detection_delay(alarm_times: list[int], tau: int, max_delay: int = TTR_CAP):
     """(delay, detected). An alarm counts if raised at score index >= tau; else censored."""
