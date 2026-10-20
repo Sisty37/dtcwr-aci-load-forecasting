@@ -1,0 +1,67 @@
+{
+  "R1": {
+    "holds": true,
+    "n_better": 8,
+    "verdicts": {
+      "Fixed 168": "better",
+      "Fixed 720": "better",
+      "Fixed 2160": "better",
+      "ACI": "no claim",
+      "ROCP": "better",
+      "DtACI": "better",
+      "Conformal PID": "better",
+      "ECI-cutoff": "better",
+      "DriftOCP": "better"
+    }
+  },
+  "R2": {
+    "holds": true,
+    "n_better": 9,
+    "verdicts": {
+      "Fixed 168": "better",
+      "Fixed 720": "better",
+      "Fixed 2160": "better",
+      "ACI": "better",
+      "ROCP": "better",
+      "DtACI": "better",
+      "Conformal PID": "better",
+      "ECI-cutoff": "better",
+      "DriftOCP": "better"
+    }
+  },
+  "R3": {
+    "holds": true,
+    "verdicts": {
+      "Conformal PID": "worse",
+      "ECI-cutoff": "worse"
+    }
+  },
+  "R4": {
+    "holds": true,
+    "verdicts": {
+      "ACI": "worse",
+      "DtACI": "worse"
+    }
+  },
+  "R5": {
+    "holds": false,
+    "median": 6.5,
+    "ci": [
+      0.8112500000000034,
+      14.366666666666667
+    ],
+    "p": 0.0353914361649341,
+    "p_holm_2": 0.0707828723298682
+  },
+  "R6": {
+    "holds": false,
+    "median": 3.433333333333337,
+    "ci": [
+      -26.30000000000001,
+      33.7
+    ],
+    "p": 0.6736344940466168,
+    "p_holm_2": 0.6736344940466168
+  },
+  "overall": "replicated"
+}
