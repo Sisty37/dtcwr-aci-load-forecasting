@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import calib as cb  # noqa: E402
 import detector_calibration as dc  # noqa: E402
 from run_calib_val import ALPHA, HORIZONS, LOCAL_W, load_forecasts  # noqa: E402
@@ -34,7 +35,7 @@ def variants(ds: str, h: int):
 def main(out=Path("results/detector_calibration.json")):
     report = {}
     pd.set_option("display.width", 170)
-    for ds in ("electricity", "elec2"):
+    for ds in [d for d in ("electricity", "elec2") if d in cohort.DATASETS]:
         for h in HORIZONS[ds]:
             t0 = time.time()
             val = load_forecasts(ds, h)

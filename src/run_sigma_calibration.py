@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import inject_target as it  # noqa: E402
 from run_calib_val import HORIZONS, LOCAL_W, load_forecasts  # noqa: E402
 
@@ -48,7 +49,7 @@ def _work(name):
 def main(workers: int = max(1, (os.cpu_count() or 2) - 1)):
     OUT.parent.mkdir(parents=True, exist_ok=True)
     out = json.loads(OUT.read_text()) if OUT.exists() else {}
-    for ds in ("elec2", "electricity"):
+    for ds in [d for d in ("elec2", "electricity") if d in cohort.DATASETS]:
         for h in HORIZONS[ds]:
             key = f"{ds}_h{h}"
             if key in out:

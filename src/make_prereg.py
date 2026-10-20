@@ -12,19 +12,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import inject as ij  # noqa: E402
 from run_calib_val import ALPHA, HORIZONS, LOCAL_W  # noqa: E402
 
 OUT = Path("PREREGISTRATION.md")
-FROZEN = [
+_FROZEN_ALL = [
     "data/processed/electricity_hourly.parquet", "data/processed/selected_clients.csv",
     "data/processed/excluded_clients.csv", "data/processed/preprocessing_summary.json",
+    *(["data/processed/cohort1_clients.csv", "PREREG_C2_PREDICTIONS.md"] if os.environ.get("ICREST_PREREG_TAG") else []),
     "data/processed/elec2_main.parquet", "data/processed/elec2_pub.parquet",
     "data/processed/elec2_summary.json",
     "results/forecasts/forecast_summary.json",
@@ -36,6 +39,9 @@ FROZEN = [
     "results/prereg/ttr_sensitivity.json", "results/prereg/ablation_H.json",
     "results/prereg/sigma_eps.json", "DECISIONS.md",
 ]
+FROZEN = [p for p in _FROZEN_ALL
+          if not (("elec2" in p and "elec2" not in cohort.DATASETS) or
+                  ("electricity" in p and "electricity" not in cohort.DATASETS))]
 LABEL = {"fixed": "Fixed windows", "aci": "ACI", "rocp": "ROCP", "dtaci": "DtACI",
          "pid": "Conformal PID", "eci_cutoff": "ECI-cutoff", "driftocp": "DriftOCP",
          "dtcwr": "DTCW-R", "dtcwr_aci": "DTCW-R+ACI"}
@@ -80,6 +86,7 @@ def main():
     w = L.append
 
     w("# Pre-registration — ICREST 2027 (drift-triggered adaptive conformal calibration)\n")
+    w(f"Cohort / datasets: **{', '.join(cohort.DATASETS)}**; tag to create: `{cohort.PREREG_TAG}`.\n")
     w(f"Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} from code commit "
       f"`{git('rev-parse', 'HEAD')}`. The commit that adds this file, tagged `prereg-v1`, is the "
       "pre-registration. **The test segment has not been opened.** Every choice below was made on "
@@ -99,9 +106,15 @@ def main():
       "benchmark title.\n")
 
     w("## 2. Data, splits, forecasts (frozen)\n")
-    w("- Electricity (UCI LD2011–2014): 2012–2014 hourly, DST repair D1, 50 clients drawn with "
-      "seed 2027 from 314 eligible. Elec2: all 45,312 half-hours (P-main); first 2,000 rows (P-pub, "
-      "Table C only, D2).")
+    if "elec2" in cohort.DATASETS:
+        w("- Electricity (UCI LD2011–2014): 2012–2014 hourly, DST repair D1, 50 clients drawn with "
+          "seed 2027 from 314 eligible. Elec2: all 45,312 half-hours (P-main); first 2,000 rows (P-pub, "
+          "Table C only, D2).")
+    else:
+        w("- **Cohort 2 (replication, D14):** Electricity only; 50 FRESH clients drawn with seed 2028 from "
+          "the 264 eligible clients not used in cohort 1 (lists in data/processed/selected_clients.csv and "
+          "data/processed/cohort1_clients.csv). Same preprocessing (D1). LightGBM re-trained on these "
+          "clients' train segments with the same procedure.")
     w("- Chronological 70/10/20 split per series. Horizons: Electricity h ∈ {1, 24}, Elec2 h ∈ {1, 48} (D3).")
     w("- LightGBM direct, frozen after training on the train segment; never refit.")
     w(f"- Miscoverage α = {ALPHA}. Score |y − ŷ|, symmetric interval.\n")
@@ -209,7 +222,7 @@ def main():
     w("")
     OUT.write_text("\n".join(L), encoding="utf-8")
     print(f"Wrote {OUT} ({len(FROZEN)} frozen files hashed). Next:\n"
-          "  git add PREREGISTRATION.md\n  git commit -m \"Pre-registration\"\n  git tag prereg-v1")
+          f"  git add PREREGISTRATION.md\n  git commit -m \"Pre-registration\"\n  git tag {cohort.PREREG_TAG}")
 
 
 if __name__ == "__main__":

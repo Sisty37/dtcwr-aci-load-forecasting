@@ -41,6 +41,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import calib as cb  # noqa: E402
 import detector_calibration as dc  # noqa: E402
 import inject as ij  # noqa: E402
@@ -169,7 +170,7 @@ def main(workers: int = max(1, (os.cpu_count() or 2) - 1)):
     sel = json.loads((tn.OUT / "selected.json").read_text())
     choice = json.loads(Path("results/detector_choice.json").read_text())
     ttr_rows, abl = [], {}
-    for ds in ("elec2", "electricity"):
+    for ds in [d for d in ("elec2", "electricity") if d in cohort.DATASETS]:
         for h in HORIZONS[ds]:
             t0 = time.time()
             key = f"{ds}_h{h}"

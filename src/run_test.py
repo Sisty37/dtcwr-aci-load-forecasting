@@ -36,6 +36,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import calib as cb  # noqa: E402
 import inject as ij  # noqa: E402
 import inject_target as it  # noqa: E402
@@ -181,16 +182,17 @@ def _work(name):
 def check_provenance(allow_dirty: bool) -> dict:
     def git(*a):
         return subprocess.run(["git", *a], capture_output=True, text=True)
-    anc = git("merge-base", "--is-ancestor", "prereg-v1", "HEAD").returncode == 0
+    tag = cohort.PREREG_TAG
+    anc = git("merge-base", "--is-ancestor", tag, "HEAD").returncode == 0
     dirty = [l for l in git("status", "--porcelain").stdout.splitlines()
              if l.strip() and "results/test" not in l]
     if not anc:
-        raise SystemExit("HEAD does not descend from tag prereg-v1: refusing to open the test segment.")
+        raise SystemExit(f"HEAD does not descend from tag {tag}: refusing to open the test segment.")
     if dirty and not allow_dirty:
         raise SystemExit("Working tree not clean (commit first, or --allow-dirty and report it):\n"
                          + "\n".join(dirty))
     return {"head": git("rev-parse", "HEAD").stdout.strip(),
-            "prereg_tag": git("rev-parse", "prereg-v1^{commit}").stdout.strip(),
+            "prereg_tag": tag, "prereg_commit": git("rev-parse", tag + "^{commit}").stdout.strip(),
             "dirty": dirty, "allow_dirty": allow_dirty}
 
 
@@ -205,7 +207,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     pfile = OUT / "provenance.json"
     log = json.loads(pfile.read_text()) if pfile.exists() else {"runs": []}
-    for ds in ("elec2", "electricity"):
+    for ds in [d for d in ("elec2", "electricity") if d in cohort.DATASETS]:
         if a.dataset and ds != a.dataset:
             continue
         for h in HORIZONS[ds]:

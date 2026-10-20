@@ -54,6 +54,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import baselines as bl  # noqa: E402
 import calib as cb  # noqa: E402
 import detector_calibration as dc  # noqa: E402
@@ -271,7 +272,7 @@ def main():
     sp = OUT / "selected.json"
     sel = json.loads(sp.read_text()) if sp.exists() else {}
     choice = json.loads(Path("results/detector_choice.json").read_text())
-    for ds in ("elec2", "electricity"):                       # the small dataset first
+    for ds in [d for d in ("elec2", "electricity") if d in cohort.DATASETS]:   # small one first
         if a.dataset and ds != a.dataset:
             continue
         for h in HORIZONS[ds]:

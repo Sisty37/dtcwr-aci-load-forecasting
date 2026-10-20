@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cohort  # noqa: E402
 import calib as cb  # noqa: E402
 import inject as ij  # noqa: E402
 from run_calib_val import ALPHA, HORIZONS, LOCAL_W, load_forecasts  # noqa: E402
@@ -38,7 +39,7 @@ def run_detector(scores: np.ndarray, h: int, H: float, kw: dict) -> list[tuple]:
 def main(cal_path=Path("results/detector_calibration.json"), out_dir=Path("results")):
     cal = json.loads(cal_path.read_text())
     rows, decisions = [], {}
-    for ds in ("electricity", "elec2"):
+    for ds in [d for d in ("electricity", "elec2") if d in cohort.DATASETS]:
         week = LOCAL_W[ds]
         for h in HORIZONS[ds]:
             t0 = time.time()
