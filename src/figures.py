@@ -202,7 +202,7 @@ def rolling_runs(name: str, h: int, methods=("dtcwr_aci", "aci", "pid", "eci_cut
 def fig2(name: str, data: dict):
     labels = {"dtcwr_aci": "DTCW-R+ACI", "aci": "ACI", "pid": "Conformal PID", "eci_cutoff": "ECI-cutoff"}
     colors = {"dtcwr_aci": BLUE, "aci": ORANGE, "pid": AQUA, "eci_cutoff": YELLOW}
-    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.3), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.45), sharey=True)
     for ax, h in zip(axes, (1, 24)):
         curves, tau, cell = data[h]
         lo, hi = tau - 200, tau + ij.TTR_CAP
@@ -210,15 +210,20 @@ def fig2(name: str, data: dict):
         for m, c in curves.items():
             ax.plot(x, c[lo:hi], color=colors[m], lw=1.6 if m == "dtcwr_aci" else 1.1,
                     label=labels[m], zorder=3 if m == "dtcwr_aci" else 2)
+        thr = 1 - 0.1 - cell["delta"]
         ax.axhline(0.9, color=INK2, lw=0.8, ls="--")
-        ax.axhline(1 - 0.1 - cell["delta"], color=INK2, lw=0.6, ls=":")
-        ax.axvline(0, color=INK2, lw=0.8)
-        ax.text(3, 0.905, "target 0.90", fontsize=6.5, color=INK2, va="bottom")
-        ax.set_xlabel("Steps after the shift")
-        ax.set_title(f"h = {h}", color=INK)
+        ax.axhline(thr, color=INK2, lw=0.6, ls=":")
+        ax.axvline(0, color=ORANGE, lw=1.0)
+        ax.text(8, 0.97, "shift", fontsize=6.3, color=ORANGE, va="top", transform=ax.get_xaxis_transform())
+        ax.set_xlabel("Steps after the injected variance shift ($\\kappa$ = 2)")
+        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK, loc="left")
     axes[0].set_ylabel("Rolling coverage (one week)")
-    axes[0].legend(loc="lower right", frameon=False, ncol=2)
-    fig.tight_layout()
+    hs, ls = axes[0].get_legend_handles_labels()
+    hs += [plt.Line2D([], [], color=INK2, lw=0.8, ls="--"), plt.Line2D([], [], color=INK2, lw=0.6, ls=":")]
+    ls += ["target 0.90", f"recovery threshold {thr:.3f}"]
+    fig.legend(hs, ls, loc="upper center", ncol=6, frameon=False, bbox_to_anchor=(0.53, 1.0),
+               fontsize=6.6, columnspacing=1.1, handlelength=1.8)
+    fig.tight_layout(rect=(0, 0, 1, 0.91))
     save(fig, "fig4_rolling_coverage")
     (OUT / "fig4_client.txt").write_text(f"representative client (median DTCW-R+ACI RMST, h=24): {name}\n")
 
