@@ -304,7 +304,7 @@ def elec2_mbb(block: int = 48, reps: int = 1000) -> pd.DataFrame:
 
 # ----------------------------------------------------------------------------- main
 def load_all() -> dict:
-    return {(ds, h): pd.read_csv(IN / f"{ds}_h{h}.csv.gz")
+    return {(ds, h): pd.read_csv(IN / f"{ds}_h{h}.csv.gz", low_memory=False)
             for ds in HORIZONS for h in HORIZONS[ds] if (IN / f"{ds}_h{h}.csv.gz").exists()}
 
 
