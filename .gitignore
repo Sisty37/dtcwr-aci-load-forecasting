@@ -3,3 +3,4 @@ data/conformal-time-series/
 __pycache__/
 .pytest_cache/
 data/Error-quantified-Conformal-Inference/
+results/test/*/clients/
