@@ -1,0 +1,202 @@
+{
+  "electricity_h1": {
+    "fixed": {
+      "configs": [
+        {
+          "W": 168
+        },
+        {
+          "W": 2160
+        },
+        {
+          "W": 720
+        }
+      ]
+    },
+    "aci": {
+      "config": {
+        "gamma": 0.00631
+      },
+      "score": 13.215153112163176,
+      "cov_unshifted": 0.8992108971348052,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "rocp": {
+      "config": {
+        "W": 51
+      },
+      "score": 13.170620073025127,
+      "cov_unshifted": 0.8848943165805543,
+      "flag": "",
+      "n_eligible": 14
+    },
+    "dtaci": {
+      "config": {
+        "I": 100,
+        "gscale": 0.5
+      },
+      "score": 13.117466363225319,
+      "cov_unshifted": 0.897942696101456,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "pid": {
+      "config": {
+        "KI": 0,
+        "lr": 0.05
+      },
+      "score": 13.129059074696984,
+      "cov_unshifted": 0.8990699859088774,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "eci_cutoff": {
+      "config": {
+        "h_cut": 0.25,
+        "lr": 0.05
+      },
+      "score": 13.11538544091587,
+      "cov_unshifted": 0.8978017848755284,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "driftocp": {
+      "config": {
+        "min_len": 40,
+        "sigma": 0.5
+      },
+      "score": 13.62675466280577,
+      "cov_unshifted": 0.8910568341944576,
+      "flag": "",
+      "n_eligible": 10
+    },
+    "dtcwr": {
+      "config": {
+        "H": 6,
+        "W_L": 336,
+        "W_S": 96,
+        "c": 0,
+        "k": 0.5
+      },
+      "score": 13.275381128355155,
+      "cov_unshifted": 0.9032127759511508,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "dtcwr_aci": {
+      "config": {
+        "H": 6,
+        "W_L": 336,
+        "W_S": 96,
+        "c": 0,
+        "gamma": 0.01,
+        "k": 0.5
+      },
+      "score": 13.272670312885072,
+      "cov_unshifted": 0.8999906059182714,
+      "flag": "",
+      "n_eligible": 16
+    }
+  },
+  "electricity_h24": {
+    "fixed": {
+      "configs": [
+        {
+          "W": 168
+        },
+        {
+          "W": 2160
+        },
+        {
+          "W": 720
+        }
+      ]
+    },
+    "aci": {
+      "config": {
+        "gamma": 0.0158
+      },
+      "score": 13.019449392594252,
+      "cov_unshifted": 0.9056410256410257,
+      "flag": "",
+      "n_eligible": 13
+    },
+    "rocp": {
+      "config": {
+        "W": 174
+      },
+      "score": 13.438006369379579,
+      "cov_unshifted": 0.8900569800569801,
+      "flag": "",
+      "n_eligible": 9
+    },
+    "dtaci": {
+      "config": {
+        "I": 100,
+        "gscale": 0.25
+      },
+      "score": 14.018740438552427,
+      "cov_unshifted": 0.8913105413105413,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "pid": {
+      "config": {
+        "KI": 0,
+        "lr": 0.05
+      },
+      "score": 15.33936077861225,
+      "cov_unshifted": 0.899249762583096,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "eci_cutoff": {
+      "config": {
+        "h_cut": 0.25,
+        "lr": 0.05
+      },
+      "score": 14.273364105331714,
+      "cov_unshifted": 0.8956980056980056,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "driftocp": {
+      "config": {
+        "min_len": 40,
+        "sigma": 1
+      },
+      "score": 14.031252913667046,
+      "cov_unshifted": 0.8736942070275404,
+      "flag": "no config within coverage tolerance",
+      "n_eligible": 0
+    },
+    "dtcwr": {
+      "config": {
+        "H": 20,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "k": 0.5
+      },
+      "score": 13.545817852508224,
+      "cov_unshifted": 0.8967901234567901,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "dtcwr_aci": {
+      "config": {
+        "H": 20,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "gamma": 0.0158,
+        "k": 0.5
+      },
+      "score": 12.92786817524638,
+      "cov_unshifted": 0.9125261158594492,
+      "flag": "",
+      "n_eligible": 16
+    }
+  }
+}
