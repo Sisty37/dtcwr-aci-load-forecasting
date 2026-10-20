@@ -1,5 +1,7 @@
 """
-Paper figures, vector PDF only (IEEE two-column: 3.5 in single, 7.16 in double column).
+Paper figures, vector PDF only. Main figures are drawn at the exact size they are printed in the
+paper (no LaTeX scaling), so every font is printed at its nominal size (>= 5.5 pt):
+  Fig. 1 5.45 in, Fig. 2 2.95 in (single column), Figs. 3-4 5.0 in wide.
 
 Main paper
   Fig. 1  fig1_method            DTCW-R+ACI pipeline and the anchored calibration window (diagram)
@@ -122,11 +124,12 @@ def fig_cd(report: dict, cohort: str, name: str):
 # ----------------------------------------------------------------------------- Fig. 1
 # label placement (points, alignment[, leader line]) so labels do not collide; default right-above
 LABEL_POS = {
-    (1, "ACI"): (-6, 2, "right"), (1, "ECI-cutoff"): (-6, -3, "right"),
-    (1, "Conformal PID"): (-6, -6, "right"), (1, "DTCW-R+ACI"): (8, -4, "left"),
-    (1, "Fixed 168"): (36, -10, "left", True), (1, "DTCW-R"): (-2, 8, "center"),
-    (24, "DtACI"): (12, -3, "left"), (24, "ROCP"): (-7, 0, "right"),
-    (24, "Fixed 168"): (10, -6, "left"), (24, "DTCW-R"): (10, 2, "left"),
+    (1, "ACI"): (-24, 4, "right", True), (1, "ECI-cutoff"): (-16, -2, "right", True),
+    (1, "Conformal PID"): (-16, -8, "right", True), (1, "DTCW-R+ACI"): (10, -1, "left"),
+    (1, "Fixed 168"): (40, -1, "left", True), (1, "DTCW-R"): (-2, 8, "center"),
+    (1, "DriftOCP"): (-4, -9, "right"), (1, "Fixed 2160"): (-7, 0, "right"),
+    (24, "DtACI"): (12, -3, "left"), (24, "DTCW-R+ACI"): (-6, 8, "center"), (24, "ROCP"): (-7, 0, "right"),
+    (24, "Fixed 168"): (10, -7, "left"), (24, "DTCW-R"): (10, 2, "left"),
     (24, "ECI-cutoff"): (0, 7, "center"), (24, "Conformal PID"): (0, -12, "right"),
 }
 
@@ -134,7 +137,7 @@ LABEL_POS = {
 def fig1(tb: pd.DataFrame):
     """Fig. 3: scatter of relative Winkler (untouched test, x) vs RMST of TTR (shifts, y), one panel
     per horizon; filled circle = cohort 1, open square = cohort 2, joined per method."""
-    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.75), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(5.0, 2.05), sharey=True)
     for ax, h in zip(axes, (1, 24)):
         t = tb[tb.h == h]
         for _, r in t.iterrows():
@@ -148,19 +151,22 @@ def fig1(tb: pd.DataFrame):
                        zorder=3, marker="s")
             dx, dy, ha, *lead = LABEL_POS.get((h, m), (5, 3, "left"))
             arrow = dict(arrowstyle="-", color=INK2, lw=0.5, shrinkA=0, shrinkB=3) if lead else None
-            ax.annotate(m, (x1, y1), xytext=(dx, dy), textcoords="offset points", fontsize=6.5, ha=ha,
+            ax.annotate(m, (x1, y1), xytext=(dx, dy), textcoords="offset points", fontsize=6.0, ha=ha,
                         va="center" if lead else "baseline", arrowprops=arrow,
                         color=INK if col != INK2 else INK2, fontweight="bold" if main else "normal")
         ax.set_yscale("log")
+        ax.set_ylim(78, 620)
+        if h == 1:
+            ax.set_xlim(0.966, 1.0105)       # room on the left for the labels of the crowded cluster
         ax.set_yticks([100, 200, 300, 500])
         ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
         ax.get_yaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
-        ax.set_xlabel("Relative Winkler score, untouched test (lower is better)")
-        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK)
-    axes[0].set_ylabel("RMST of time-to-recover (steps, lower is better)")
+        ax.set_xlabel("Relative Winkler score (untouched test)")
+        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK, fontsize=7)
+    axes[0].set_ylabel("RMST of TTR (steps)")
     handles = [plt.Line2D([], [], marker="o", ms=4.5, ls="", color=INK2, label="Cohort 1"),
-               plt.Line2D([], [], marker="s", ms=4.5, ls="", mfc=SURF, mec=INK2, label="Cohort 2 (replication)")]
-    axes[1].legend(handles=handles, loc="lower left", frameon=False)
+               plt.Line2D([], [], marker="s", ms=4.5, ls="", mfc=SURF, mec=INK2, label="Cohort 2")]
+    axes[1].legend(handles=handles, loc="lower left", frameon=False, fontsize=6.2, borderaxespad=0.2)
     fig.tight_layout()
     save(fig, "fig3_tradeoff")
 
@@ -202,7 +208,7 @@ def rolling_runs(name: str, h: int, methods=("dtcwr_aci", "aci", "pid", "eci_cut
 def fig2(name: str, data: dict):
     labels = {"dtcwr_aci": "DTCW-R+ACI", "aci": "ACI", "pid": "Conformal PID", "eci_cutoff": "ECI-cutoff"}
     colors = {"dtcwr_aci": BLUE, "aci": ORANGE, "pid": AQUA, "eci_cutoff": YELLOW}
-    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.45), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(5.0, 1.9), sharey=True)
     for ax, h in zip(axes, (1, 24)):
         curves, tau, cell = data[h]
         lo, hi = tau - 200, tau + ij.TTR_CAP
@@ -215,15 +221,15 @@ def fig2(name: str, data: dict):
         ax.axhline(thr, color=INK2, lw=0.6, ls=":")
         ax.axvline(0, color=ORANGE, lw=1.0)
         ax.text(8, 0.97, "shift", fontsize=6.3, color=ORANGE, va="top", transform=ax.get_xaxis_transform())
-        ax.set_xlabel("Steps after the injected variance shift ($\\kappa$ = 2)")
-        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK, loc="left")
-    axes[0].set_ylabel("Rolling coverage (one week)")
+        ax.set_xlabel("Steps after the variance shift ($\\kappa$ = 2)")
+        ax.set_title(f"h = {h}" + (" (one step ahead)" if h == 1 else " (day ahead)"), color=INK, loc="left", fontsize=7)
+    axes[0].set_ylabel("Rolling coverage (1 week)")
     hs, ls = axes[0].get_legend_handles_labels()
     hs += [plt.Line2D([], [], color=INK2, lw=0.8, ls="--"), plt.Line2D([], [], color=INK2, lw=0.6, ls=":")]
     ls += ["target 0.90", f"recovery threshold {thr:.3f}"]
-    fig.legend(hs, ls, loc="upper center", ncol=6, frameon=False, bbox_to_anchor=(0.53, 1.0),
-               fontsize=6.6, columnspacing=1.1, handlelength=1.8)
-    fig.tight_layout(rect=(0, 0, 1, 0.91))
+    fig.legend(hs, ls, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.53, 1.0),
+               fontsize=6.2, columnspacing=1.1, handlelength=1.8, labelspacing=0.3)
+    fig.tight_layout(rect=(0, 0, 1, 0.83))
     save(fig, "fig4_rolling_coverage")
     (OUT / "fig4_client.txt").write_text(f"representative client (median DTCW-R+ACI RMST, h=24): {name}\n")
 
@@ -295,7 +301,7 @@ def fig_method():
     stream) plus the ACI feedback loop."""
     t, y, yhat, s, g, ta, th = _toy_stream()
     H, WL, WS = 6.0, 90, 24
-    fig = plt.figure(figsize=(7.16, 3.25))
+    fig = plt.figure(figsize=(5.45, 2.5))
     ov = fig.add_axes([0, 0, 1, 1], zorder=0)
     ov.set_xlim(0, 1)
     ov.set_ylim(0, 1)
@@ -309,7 +315,7 @@ def fig_method():
         yb = 0.025 if a == 3 else ty0 - 0.02
         ov.add_patch(FancyBboxPatch((gx0, yb), gx1 - gx0, 0.995 - yb, boxstyle="round,pad=0,rounding_size=0.015",
                                     fc=col, ec="none", zorder=0))
-        ov.text((gx0 + gx1) / 2, 0.965, lab, ha="center", va="center", fontsize=6.6, color=INK2,
+        ov.text((gx0 + gx1) / 2, 0.965, lab, ha="center", va="center", fontsize=6.0, color=INK2,
                 style="italic")
     titles = ["Score", "1  Detect", "2  Anchor", "3  Calibrate", "Interval"]
     eqs = ["$s_t=|y_t-\\hat y_{t|t-h}|$",
@@ -322,9 +328,9 @@ def fig_method():
     for k, x in enumerate(xs):
         ov.add_patch(FancyBboxPatch((x, ty0), w, ty1 - ty0, boxstyle="round,pad=0,rounding_size=0.012",
                                     fc=SURF, ec=edge[k], lw=1.0, zorder=1))
-        ov.text(x + w / 2, ty1 - 0.035, titles[k], ha="center", va="center", fontsize=7, fontweight="bold",
+        ov.text(x + w / 2, ty1 - 0.035, titles[k], ha="center", va="center", fontsize=6.4, fontweight="bold",
                 color=INK, zorder=2)
-        ov.text(x + w / 2, ty0 + 0.065, eqs[k], ha="center", va="center", fontsize=6.4, color=INK,
+        ov.text(x + w / 2, ty0 + 0.065, eqs[k], ha="center", va="center", fontsize=5.6, color=INK,
                 zorder=2, linespacing=1.4)
         a = fig.add_axes([x + 0.012, ty0 + 0.15, w - 0.024, 0.33], zorder=2)
         a.set_xticks([])
@@ -348,9 +354,9 @@ def fig_method():
     a = axs[1]
     a.plot(t, g, color=BLUE, lw=0.9)
     a.axhline(H, color=INK2, lw=0.7, ls="--")
-    a.text(2, H + 0.3, "H", fontsize=6, color=INK2, va="bottom")
+    a.text(2, H + 0.3, "H", fontsize=5.6, color=INK2, va="bottom")
     a.plot([ta], [g[ta]], marker="o", ms=4, color=BLUE)
-    a.text(ta - 4, H - 0.6, "alarm $t_a$", fontsize=6.4, color=BLUE, ha="right", va="top")
+    a.text(ta - 4, H - 0.6, "alarm $t_a$", fontsize=5.8, color=BLUE, ha="right", va="top")
     a.set_ylim(-0.5, max(H, np.nanmax(g)) + 1.5)
     # tile 2: anchor
     a = axs[2]
@@ -362,7 +368,7 @@ def fig_method():
     a.annotate("", xy=(th, 0.6), xytext=(ta - 1, g[ta] - 0.3),
                arrowprops=dict(arrowstyle="-|>", color=ORANGE, lw=0.8, mutation_scale=6,
                                connectionstyle="arc3,rad=0.3"))
-    a.text(th + 1, -0.4, "$\\hat\\tau$", fontsize=7, color=ORANGE, va="top")
+    a.text(th + 1, -0.4, "$\\hat\\tau$", fontsize=6.4, color=ORANGE, va="top")
     a.set_ylim(-1.2, max(H, np.nanmax(g)) + 1.0)
     a.set_xlim(lo, ta + 4)
     # tile 3: window
@@ -376,9 +382,9 @@ def fig_method():
     qo = np.quantile(s[win_old[0]:win_old[1]], 0.9)
     a.plot([win_old[0], th], [qo, qo], color=INK2, lw=1.0)
     a.plot([th, t[-1]], [qn, qn], color=BLUE, lw=1.0)
-    a.text(t[-1], qn, " $\\hat q$", fontsize=6, color=BLUE, va="center", ha="left")
-    a.text((win_old[0] + win_old[1]) / 2, s.max() * 0.98, "old", fontsize=6.2, color=INK2, ha="center", va="top")
-    a.text((th + t[-1]) / 2, s.max() * 0.98, "from $\\hat\\tau$", fontsize=6.2, color=BLUE, ha="center", va="top")
+    a.text(t[-1], qn, " $\\hat q$", fontsize=5.6, color=BLUE, va="center", ha="left")
+    a.text((win_old[0] + win_old[1]) / 2, s.max() * 0.98, "old", fontsize=5.6, color=INK2, ha="center", va="top")
+    a.text((th + t[-1]) / 2, s.max() * 0.98, "from $\\hat\\tau$", fontsize=5.6, color=BLUE, ha="center", va="top")
     a.set_xlim(win_old[0] - 5, t[-1] + 12)
     # tile 4: interval band
     a = axs[4]
@@ -398,10 +404,10 @@ def fig_method():
     ax_x, ax_w = xs[3], xs[4] + w - xs[3]
     ov.add_patch(FancyBboxPatch((ax_x, 0.045), ax_w, 0.22, boxstyle="round,pad=0,rounding_size=0.012",
                                 fc=SURF, ec=BLUE, lw=1.0, zorder=1))
-    ov.text(ax_x + 0.012, 0.225, "4  Adapt the level (ACI, h interleaved copies)", fontsize=6.8,
+    ov.text(ax_x + 0.012, 0.225, "4  Adapt the level (ACI, h copies)", fontsize=6.2,
             fontweight="bold", color=INK, va="center", zorder=2)
     ov.text(ax_x + 0.012, 0.10, "$\\alpha^{(j)}\\leftarrow\\alpha^{(j)}+\\gamma(\\alpha-\\mathrm{miss}_t)$\n"
-            "$j=t\\,\\mathrm{mod}\\,h$", fontsize=6.6, color=INK, va="center",
+            "$j=t\\,\\mathrm{mod}\\,h$", fontsize=5.8, color=INK, va="center",
             zorder=2, linespacing=1.4)
     aa = fig.add_axes([ax_x + ax_w * 0.58, 0.065, ax_w * 0.39, 0.13], zorder=2)
     rng = np.random.default_rng(1)
@@ -411,13 +417,13 @@ def fig_method():
         al.append(al[-1] + 0.01 * (0.1 - m_))
     aa.plot(al, color=BLUE, lw=0.8)
     aa.axhline(0.1, color=INK2, lw=0.6, ls="--")
-    aa.text(1, 0.1, "$\\alpha$", fontsize=5.8, color=INK2, va="bottom")
-    aa.text(158, al[-1], "$\\alpha_t$", fontsize=5.8, color=BLUE, va="center", ha="left")
+    aa.text(1, 0.1, "$\\alpha$", fontsize=5.5, color=INK2, va="bottom")
+    aa.text(158, al[-1], "$\\alpha_t$", fontsize=5.5, color=BLUE, va="center", ha="left")
     aa.axis("off")
     _arrow(ov, xs[4] + w * 0.5, ty0, xs[4] + w * 0.5, 0.265, color=INK2)
-    ov.text(xs[4] + w * 0.5 + 0.005, 0.315, "miss$_t$ (h late)", fontsize=6.3, color=INK2, va="center")
+    ov.text(xs[4] + w * 0.5 + 0.005, 0.315, "miss$_t$ (h late)", fontsize=5.6, color=INK2, va="center")
     _arrow(ov, xs[3] + w * 0.5, 0.265, xs[3] + w * 0.5, ty0, color=INK2)
-    ov.text(xs[3] + w * 0.5 + 0.005, 0.315, "$\\alpha_t$", fontsize=6.2, color=INK2, va="center")
+    ov.text(xs[3] + w * 0.5 + 0.005, 0.315, "$\\alpha_t$", fontsize=5.6, color=INK2, va="center")
     # visual key instead of a block of notes (details go in the caption)
     from matplotlib.patches import Patch
     key = [plt.Line2D([], [], marker=".", ls="", ms=6, color=INK2, label="outcome $y_t$"),
@@ -430,8 +436,8 @@ def fig_method():
            Patch(fc=BLUE, alpha=0.30, label="window from $\\hat\\tau$ (ours)"),
            Patch(fc=ORANGE, alpha=0.6, label="hard reset (ablation)")]
     fig.legend(handles=key, loc="lower left", bbox_to_anchor=(x0, 0.03), ncol=3, frameon=True,
-               fontsize=7, handlelength=1.6, columnspacing=1.2, labelspacing=0.7, borderpad=0.8,
-               title="Key", title_fontsize=7.2, edgecolor=GRID, facecolor=SURF)
+               fontsize=5.8, handlelength=1.4, columnspacing=0.9, labelspacing=0.45, borderpad=0.6,
+               title="Key", title_fontsize=6.2, edgecolor=GRID, facecolor=SURF)
     save(fig, "fig1_method")
 
 
@@ -524,7 +530,7 @@ def fig_replication(cs: pd.DataFrame):
     base = ["Fixed 168", "Fixed 720", "Fixed 2160", "ACI", "DtACI", "Conformal PID", "ECI-cutoff",
             "ROCP", "DriftOCP"]
     style = {"better": (BLUE, "+", SURF), "worse": (ORANGE, "−", SURF), "no claim": ("#e6e5e0", "·", INK2)}
-    fig = plt.figure(figsize=(3.5, 3.35))
+    fig = plt.figure(figsize=(2.95, 2.55))
     ax = fig.add_axes([0.25, 0.115, 0.73, 0.80])
     ax.set_xlim(-0.5, len(cols) - 0.5 + 0.35)
     ax.set_ylim(len(base) - 0.5, -2.35)
@@ -540,26 +546,26 @@ def fig_replication(cs: pd.DataFrame):
                 fc, glyph, tc = style[v]
                 x = xc - cw - gap / 2 if k == 0 else xc + gap / 2
                 ax.add_patch(Rectangle((x, r - 0.42), cw, 0.84, fc=fc, ec=SURF, lw=0.6))
-                ax.text(x + cw / 2, r, glyph, ha="center", va="center", fontsize=7.5, color=tc,
+                ax.text(x + cw / 2, r, glyph, ha="center", va="center", fontsize=6.8, color=tc,
                         fontweight="bold")
-        ax.text(xc, -0.75, lab, ha="center", va="bottom", fontsize=6.4, color=INK, linespacing=1.1)
+        ax.text(xc, -0.75, lab, ha="center", va="bottom", fontsize=5.8, color=INK, linespacing=1.05)
     for h, c0 in ((1, 1), (24, 4.35)):
         ax.text(c0, -1.85, f"h = {h}" + (" (one step)" if h == 1 else " (day ahead)"), ha="center",
-                va="bottom", fontsize=7, fontweight="bold", color=INK)
+                va="bottom", fontsize=6.3, fontweight="bold", color=INK)
         ax.plot([c0 - 1.45, c0 + 1.45], [-1.6, -1.6], color=INK2, lw=0.8)
     for r, b in enumerate(base):
-        ax.text(-0.62, r, b, ha="right", va="center", fontsize=6.6, color=INK)
-    ax.text(-0.62, -0.75, "vs baseline", ha="right", va="bottom", fontsize=6.2, color=INK2, style="italic")
+        ax.text(-0.62, r, b, ha="right", va="center", fontsize=6.0, color=INK)
+    ax.text(-0.62, -0.75, "vs baseline", ha="right", va="bottom", fontsize=5.6, color=INK2, style="italic")
     from matplotlib.patches import Patch
     hd = [Patch(fc=BLUE, label="+ better"), Patch(fc=ORANGE, label="− worse"),
           Patch(fc="#e6e5e0", label="· no claim")]
-    fig.legend(handles=hd, loc="lower center", ncol=3, frameon=False, fontsize=6.6,
+    fig.legend(handles=hd, loc="lower center", ncol=3, frameon=False, fontsize=6.0,
                bbox_to_anchor=(0.6, 0.035), handlelength=1.2, columnspacing=1.0)
     fig.text(0.6, 0.01, "each cell: left = cohort 1, right = cohort 2 (replication)", ha="center",
-             fontsize=6.2, color=INK2)
+             fontsize=5.6, color=INK2)
     same = (cs.verdict_c1 == cs.verdict_c2).sum()
     fig.text(0.6, 0.975, f"DTCW-R+ACI vs 9 baselines: {same}/{len(cs)} verdicts identical in both cohorts",
-             ha="center", va="top", fontsize=6.6, color=INK, fontweight="bold")
+             ha="center", va="top", fontsize=6.0, color=INK, fontweight="bold")
     save(fig, "fig2_replication")
 
 
