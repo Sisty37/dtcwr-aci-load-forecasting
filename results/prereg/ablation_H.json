@@ -1,0 +1,56 @@
+{
+  "electricity_h1": {
+    "config": {
+      "W_S": 168,
+      "W_L": 720,
+      "k": 0.5,
+      "c": 72
+    },
+    "prewhiten": true,
+    "D_magnitude_anchored": {
+      "H": 7,
+      "fa_at_H": 0.28421052631578947
+    },
+    "B_magnitude_reset": {
+      "H": 7,
+      "fa_at_H": 0.28421052631578947
+    },
+    "A_miss_anchored": {
+      "H": 1.35,
+      "fa_at_H": 0.4800000000000001,
+      "warning": ""
+    },
+    "R_miss_reset": {
+      "H": 1.45,
+      "fa_at_H": 0.32842105263157884,
+      "warning": ""
+    }
+  },
+  "electricity_h24": {
+    "config": {
+      "W_S": 168,
+      "W_L": 720,
+      "k": 0.5,
+      "c": 72
+    },
+    "prewhiten": false,
+    "D_magnitude_anchored": {
+      "H": 20,
+      "fa_at_H": 0.4189473684210526
+    },
+    "B_magnitude_reset": {
+      "H": 20,
+      "fa_at_H": 0.4189473684210526
+    },
+    "A_miss_anchored": {
+      "H": 2.4,
+      "fa_at_H": 0.4505263157894736,
+      "warning": ""
+    },
+    "R_miss_reset": {
+      "H": 2.5,
+      "fa_at_H": 0.4778947368421052,
+      "warning": ""
+    }
+  }
+}
