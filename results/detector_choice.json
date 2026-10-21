@@ -1,0 +1,24 @@
+{
+  "electricity_h1": {
+    "pooled_median_delay": {
+      "plain": 51.0,
+      "prewhiten": 42.0
+    },
+    "winner": "prewhiten",
+    "H": {
+      "plain": 12,
+      "prewhiten": 7
+    }
+  },
+  "electricity_h24": {
+    "pooled_median_delay": {
+      "plain": 106.0,
+      "prewhiten": 105.0
+    },
+    "winner": "plain",
+    "H": {
+      "plain": 25,
+      "prewhiten": 8
+    }
+  }
+}
