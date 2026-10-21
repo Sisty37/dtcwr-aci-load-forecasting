@@ -1,0 +1,26 @@
+{
+  "electricity_h1": {
+    "saocp": {
+      "config": {
+        "lifetime": 32,
+        "scale_mult": 0.5
+      },
+      "score": 11.968338683507879,
+      "cov_unshifted": 0.9060873649600751,
+      "flag": "",
+      "n_eligible": 12
+    }
+  },
+  "electricity_h24": {
+    "saocp": {
+      "config": {
+        "lifetime": 32,
+        "scale_mult": 1
+      },
+      "score": 13.158279067348406,
+      "cov_unshifted": 0.8814719848053181,
+      "flag": "",
+      "n_eligible": 8
+    }
+  }
+}
