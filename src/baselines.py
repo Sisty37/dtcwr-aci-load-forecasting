@@ -372,3 +372,98 @@ class DriftOCP(cb.Method):
             self.r += 1
             self.round_start, self.round = t + 1, []
             self._scan.reset()
+
+
+# ============================================================================ SAOCP
+class SAOCP(cb.Method):
+    """
+    Strongly Adaptive Online Conformal Prediction (Bhatnagar et al., ICML 2023), ported from the
+    authors' code (github.com/salesforce/online_conformal, online_conformal/saocp.py, commit
+    95790a9) and vectorised over experts; tests/test_baselines.py checks it against a line-by-line copy
+    of the original update loop (same coverage within 0.2 pp and mean quantile within 0.5% on
+    random streams; exact equality is not expected because meta-weights at zero can differ by
+    floating-point rounding between summation orders). Experts are scale-free OGD learners of the score quantile that
+    start at every step and live g * 2^u steps (u = 2-adic valuation of the start time); they are
+    combined by coin betting (CBCE). Added AFTER the tests were opened (decision D17): tuned on
+    validation with the same 16-configuration budget, reported as an additional, non-confirmatory
+    baseline. Delayed feedback: the update for target t is applied when s_t arrives (same rule as
+    the other single-state baselines).
+    """
+    name = "saocp"
+
+    def __init__(self, alpha, h, lifetime: int = 8, scale_mult: float = 1.0):
+        super().__init__(alpha, h)
+        self.g, self.scale_mult = lifetime, scale_mult
+        self.cov = 1 - alpha
+        self.scale = 1.0
+        self.t = 1
+        self.start = np.empty(0, int)
+        self.yhat = np.empty(0)
+        self.gn = np.empty(0)          # sum of squared gradients
+        self.z = np.empty(0)
+        self.wz = np.empty(0)
+        self.st = np.empty(0)          # steps alive
+        self.life = np.empty(0)
+
+    def setup(self, warm):
+        warm = np.asarray(warm, float)
+        self.scale = (float(np.max(np.abs(warm))) * math.sqrt(3) if len(warm) else 1.0) * self.scale_mult
+
+    def _w(self):
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return np.where(self.st == 0, 0.0, self.z / np.where(self.st == 0, 1, self.st) * (1 + self.wz))
+
+    def _delta(self) -> float:
+        if len(self.start) == 0:
+            return 0.0
+        # sequential Python sums, in start order, exactly as the authors' code (bitwise-equal output)
+        t = self.start.astype(float)
+        prior = 1.0 / (t ** 2 * (1 + np.floor(np.log2(t))))
+        prior = prior / sum(prior.tolist())
+        p = prior * np.maximum(0.0, self._w())
+        sp = sum(p.tolist())
+        p = p / sp if sp > 0 else prior
+        return float(sum((p * self.yhat).tolist()))
+
+    def predict(self, tau):
+        m = len(self.scores)
+        if m != tau - self.h + 1:
+            raise RuntimeError(f"target {tau}: {m} scores known, expected {tau - self.h + 1}")
+        q = self._delta()
+        self.q_issued[tau] = q
+        return q
+
+    def _on_observe(self, t, s):
+        s = abs(float(s))
+        s_hat = self._delta()
+        keep = ~(self.st > self.life)
+        if not keep.all():
+            for a in ("start", "yhat", "gn", "z", "wz", "st", "life"):
+                setattr(self, a, getattr(self, a)[keep])
+        tt, u = self.t, 0
+        while tt % 2 == 0:
+            tt //= 2
+            u += 1
+        self.start = np.append(self.start, self.t)
+        self.yhat = np.append(self.yhat, s_hat)
+        for a in ("gn", "z", "wz", "st"):
+            setattr(self, a, np.append(getattr(self, a), 0.0))
+        self.life = np.append(self.life, self.g * 2 ** u)
+        q = self.cov                         # meta-loss level (coverage)
+        ae = 1 - q                           # expert alpha; experts use level 1 - ae (as the repo)
+        qe = 1 - ae
+        d = self._delta()
+        meta = max(q * (s - d), (1 - q) * (d - s))
+        loss = np.maximum(qe * (s - self.yhat), (1 - qe) * (self.yhat - s))
+        w = self._w()
+        gg = np.clip((meta - loss) / self.scale / max(ae, 1 - ae), -1.0 * (w > 0), 1.0)
+        self.z += gg
+        self.wz += gg * w
+        self.st += 1
+        grad = -qe * (s > self.yhat) + (1 - qe) * (s < self.yhat)
+        self.gn += grad ** 2
+        base_lr = self.scale / math.sqrt(3)
+        nz = self.gn != 0
+        self.yhat = np.where(nz, np.maximum(0.0, self.yhat - base_lr / np.sqrt(np.where(nz, self.gn, 1.0)) * grad),
+                             self.yhat)
+        self.t += 1

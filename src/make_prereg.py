@@ -28,6 +28,8 @@ _FROZEN_ALL = [
     "data/processed/electricity_hourly.parquet", "data/processed/selected_clients.csv",
     "data/processed/excluded_clients.csv", "data/processed/preprocessing_summary.json",
     *(["data/processed/cohort1_clients.csv", "PREREG_C2_PREDICTIONS.md"] if os.environ.get("ICREST_PREREG_TAG") else []),
+    *(["data/processed/cohort2_clients.csv", "PREREG_C3_PREDICTIONS.md"]
+      if os.environ.get("ICREST_PREREG_TAG") == "prereg-c3" else []),
     "data/processed/elec2_main.parquet", "data/processed/elec2_pub.parquet",
     "data/processed/elec2_summary.json",
     "results/forecasts/forecast_summary.json",
@@ -110,6 +112,12 @@ def main():
         w("- Electricity (UCI LD2011–2014): 2012–2014 hourly, DST repair D1, 50 clients drawn with "
           "seed 2027 from 314 eligible. Elec2: all 45,312 half-hours (P-main); first 2,000 rows (P-pub, "
           "Table C only, D2).")
+    elif cohort.PREREG_TAG == "prereg-c3":
+        w("- **Cohort 3 (robustness at 95% coverage, D18):** Electricity only; 50 NEW clients drawn with "
+          "seed 2029 from the 214 eligible clients used by neither cohort 1 nor cohort 2 (lists in "
+          "data/processed/selected_clients.csv, cohort1_clients.csv, cohort2_clients.csv). Same "
+          "preprocessing (D1); LightGBM re-trained on these clients' train segments; alpha = 0.05. "
+          "Predictions S1-S4: PREREG_C3_PREDICTIONS.md.")
     else:
         w("- **Cohort 2 (replication, D14):** Electricity only; 50 FRESH clients drawn with seed 2028 from "
           "the 264 eligible clients not used in cohort 1 (lists in data/processed/selected_clients.csv and "

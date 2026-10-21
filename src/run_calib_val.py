@@ -14,6 +14,7 @@ Default (untuned) configurations are used; tuning on validation comes in the nex
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 from pathlib import Path
@@ -24,7 +25,9 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import calib as cb  # noqa: E402
 
-ALPHA = 0.1
+# Miscoverage level. 0.1 for cohorts 1 and 2; cohort 3 (decision D18) runs the unchanged
+# pipeline at 0.05 by setting the environment variable ICREST_ALPHA before every script.
+ALPHA = float(os.environ.get("ICREST_ALPHA", "0.1"))
 LOCAL_W = {"electricity": 168, "elec2": 336}          # one calendar week of targets
 HORIZONS = {"electricity": (1, 24), "elec2": (1, 48)}
 

@@ -355,3 +355,81 @@ if __name__ == "__main__":
                     print(e, k)
                 else:
                     raise
+
+
+# ----------------------------------------------------------------------------- SAOCP (D17)
+def _saocp_reference(scores, coverage, scale, g=8):
+    """Line-by-line copy of the update loop of salesforce/online_conformal saocp.py (commit
+    95790a9), without the forecasting wrapper; returns the issued quantile before each score."""
+    def pin(y, yhat, q):
+        return max(q * (y - yhat), (1 - q) * (yhat - y))
+
+    def pin_grad(y, yhat, q):
+        return -q * (y > yhat) + (1 - q) * (y < yhat)
+
+    class OGD:
+        def __init__(self, t, yhat_0):
+            self.base_lr, self.alpha, self.yhat, self.grad_norm = scale / np.sqrt(3), 1 - coverage, yhat_0, 0
+            u = 0
+            while t % 2 == 0:
+                t /= 2
+                u += 1
+            self.lifetime, self.z, self.wz, self.s_t = g * 2 ** u, 0, 0, 0
+
+        @property
+        def w(self):
+            return 0 if self.s_t == 0 else self.z / self.s_t * (1 + self.wz)
+
+        def update(self, y, meta_loss):
+            w = self.w
+            gg = np.clip((meta_loss - pin(y, self.yhat, 1 - self.alpha)) / scale / max(self.alpha, 1 - self.alpha),
+                         -1 * (w > 0), 1)
+            self.z += gg
+            self.wz += gg * w
+            self.s_t += 1
+            grad = pin_grad(y, self.yhat, 1 - self.alpha)
+            self.grad_norm += grad ** 2
+            if self.grad_norm != 0:
+                self.yhat = max(0, self.yhat - self.base_lr / np.sqrt(self.grad_norm) * grad)
+
+    experts, t, out = {}, 1, []
+
+    def predict():
+        prior = {k: 1 / (k ** 2 * (1 + np.floor(np.log2(k)))) for k in experts}
+        zz = sum(prior.values())
+        prior = {k: v / zz for k, v in prior.items()}
+        p = {k: prior[k] * max(0, e.w) for k, e in experts.items()}
+        sp = sum(p.values())
+        p = {k: v / sp for k, v in p.items()} if sp > 0 else prior
+        return sum(p[k] * e.yhat for k, e in experts.items())
+
+    for s in scores:
+        out.append(predict() if experts else 0.0)
+        s_hat = predict() if experts else 0.0
+        [experts.pop(k) for k in [k for k, v in experts.items() if v.s_t > v.lifetime]]
+        experts[t] = OGD(t, s_hat)
+        meta = pin(s, predict(), coverage)
+        [e.update(s, meta) for e in experts.values()]
+        t += 1
+    return np.array(out)
+
+
+def test_saocp_matches_authors_code():
+    """Same algorithm; outputs agree up to floating-point rounding (meta-weights that are exactly
+    zero in one summation order can be +-1e-18 in the other), so we compare behaviour."""
+    for seed in range(3):
+        rng = np.random.default_rng(seed)
+        n = 3000
+        s = np.abs(rng.standard_t(3, size=n)) * np.where(np.arange(n) > 1500, 3.0, 1.0)
+        m = bl.SAOCP(0.1, 1, lifetime=8)
+        m.setup(s[:200])
+        mine = []
+        for t, v in enumerate(s):
+            mine.append(m._delta())
+            m.observe(t, float(v))
+        mine = np.array(mine)
+        ref = _saocp_reference(s, 0.9, scale=float(np.max(s[:200])) * np.sqrt(3), g=8)
+        ev = slice(200, None)
+        assert abs((s[ev] <= mine[ev]).mean() - (s[ev] <= ref[ev]).mean()) < 0.002
+        assert abs(mine[ev].mean() / ref[ev].mean() - 1) < 0.005
+        assert np.median(np.abs(mine[ev] - ref[ev]) / ref[ev]) < 0.01
