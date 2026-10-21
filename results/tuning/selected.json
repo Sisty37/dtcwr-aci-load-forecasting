@@ -1,0 +1,202 @@
+{
+  "electricity_h1": {
+    "fixed": {
+      "configs": [
+        {
+          "W": 168
+        },
+        {
+          "W": 2160
+        },
+        {
+          "W": 720
+        }
+      ]
+    },
+    "aci": {
+      "config": {
+        "gamma": 0.00398
+      },
+      "score": 14.798871645673625,
+      "cov_unshifted": 0.9494880225457962,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "rocp": {
+      "config": {
+        "W": 51
+      },
+      "score": 14.63141894276309,
+      "cov_unshifted": 0.9424612494128699,
+      "flag": "",
+      "n_eligible": 14
+    },
+    "dtaci": {
+      "config": {
+        "I": 100,
+        "gscale": 0.25
+      },
+      "score": 14.563864054003487,
+      "cov_unshifted": 0.9487364960075153,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "pid": {
+      "config": {
+        "KI": 0,
+        "lr": 0.05
+      },
+      "score": 14.541970149088352,
+      "cov_unshifted": 0.9488116486613434,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "eci_cutoff": {
+      "config": {
+        "h_cut": 0.25,
+        "lr": 0.1
+      },
+      "score": 14.537363343893203,
+      "cov_unshifted": 0.9482198215124471,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "driftocp": {
+      "config": {
+        "min_len": 5,
+        "sigma": 0.5
+      },
+      "score": 15.406727741406987,
+      "cov_unshifted": 0.9415969938938469,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "dtcwr": {
+      "config": {
+        "H": 7,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "k": 0.5
+      },
+      "score": 14.927209232212704,
+      "cov_unshifted": 0.9507937999060592,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "dtcwr_aci": {
+      "config": {
+        "H": 7,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "gamma": 0.00631,
+        "k": 0.5
+      },
+      "score": 14.830664772615695,
+      "cov_unshifted": 0.9499201503053076,
+      "flag": "",
+      "n_eligible": 16
+    }
+  },
+  "electricity_h24": {
+    "fixed": {
+      "configs": [
+        {
+          "W": 168
+        },
+        {
+          "W": 2160
+        },
+        {
+          "W": 720
+        }
+      ]
+    },
+    "aci": {
+      "config": {
+        "gamma": 0.01
+      },
+      "score": 15.65643098553574,
+      "cov_unshifted": 0.9534283000949668,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "rocp": {
+      "config": {
+        "W": 364
+      },
+      "score": 16.21197473039405,
+      "cov_unshifted": 0.9403513770180437,
+      "flag": "",
+      "n_eligible": 9
+    },
+    "dtaci": {
+      "config": {
+        "I": 1000,
+        "gscale": 0.25
+      },
+      "score": 16.646664923288892,
+      "cov_unshifted": 0.9455365622032289,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "pid": {
+      "config": {
+        "KI": 0,
+        "lr": 0.05
+      },
+      "score": 17.359528691308267,
+      "cov_unshifted": 0.948974358974359,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "eci_cutoff": {
+      "config": {
+        "h_cut": 0.25,
+        "lr": 0.05
+      },
+      "score": 17.624084528458326,
+      "cov_unshifted": 0.951604938271605,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "driftocp": {
+      "config": {
+        "min_len": 40,
+        "sigma": 0.5
+      },
+      "score": 17.11856159265086,
+      "cov_unshifted": 0.9301044634377967,
+      "flag": "",
+      "n_eligible": 3
+    },
+    "dtcwr": {
+      "config": {
+        "H": 20,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "k": 0.5
+      },
+      "score": 16.14005591960401,
+      "cov_unshifted": 0.9458404558404558,
+      "flag": "",
+      "n_eligible": 16
+    },
+    "dtcwr_aci": {
+      "config": {
+        "H": 20,
+        "W_L": 720,
+        "W_S": 168,
+        "c": 72,
+        "gamma": 0.00631,
+        "k": 0.5
+      },
+      "score": 15.758767690988446,
+      "cov_unshifted": 0.9530104463437797,
+      "flag": "",
+      "n_eligible": 16
+    }
+  }
+}
