@@ -94,6 +94,8 @@ def grids(ds: str, h: int, T_val: int) -> dict[str, list[dict]]:
         "driftocp": [{"sigma": sg, "min_len": m} for sg in (0.5, 1, 2, 4) for m in (5, 10, 20, 40)],
         "dtcwr": [{k: (v * s if k in ("W_S", "W_L", "c") else v) for k, v in p.items()}
                   for p in dtcwr_draw()],
+        # D17: added after the tests were opened; tuned with the same budget and rule, not in FAMILIES
+        "saocp": [{"lifetime": g_, "scale_mult": m_} for g_ in (4, 8, 16, 32) for m_ in (0.25, 0.5, 1, 2)],
     }
     return g
 
@@ -114,6 +116,8 @@ def make_method(family: str, cfg: dict, h: int, extra: dict | None = None) -> cb
         return bl.ECICutoff(ALPHA, h, cfg["lr"], c_rel=bl.ECI_C_REL, h_cut=cfg["h_cut"])
     if family == "driftocp":
         return bl.DriftOCP(ALPHA, h, sigma=cfg["sigma"], min_len=cfg["min_len"])
+    if family == "saocp":
+        return bl.SAOCP(ALPHA, h, lifetime=cfg["lifetime"], scale_mult=cfg["scale_mult"])
     if family in ("dtcwr", "dtcwr_aci"):
         kw = {k: cfg[k] for k in ("W_S", "W_L", "k", "c", "H")}
         return cb.DTCWR(ALPHA, h, prewhiten=extra.get("prewhiten", False),
