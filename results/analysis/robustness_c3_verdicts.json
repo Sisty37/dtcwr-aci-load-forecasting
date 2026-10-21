@@ -1,0 +1,47 @@
+{
+  "S1": {
+    "holds": true,
+    "n_better": 8,
+    "verdicts": {
+      "Fixed 168": "better",
+      "Fixed 720": "better",
+      "Fixed 2160": "better",
+      "ACI": "worse",
+      "ROCP": "better",
+      "DtACI": "better",
+      "Conformal PID": "better",
+      "ECI-cutoff": "better",
+      "DriftOCP": "better"
+    }
+  },
+  "S2": {
+    "holds": true,
+    "n_better": 7,
+    "verdicts": {
+      "Fixed 168": "better",
+      "Fixed 720": "better",
+      "Fixed 2160": "better",
+      "ACI": "better",
+      "ROCP": "no claim",
+      "DtACI": "better",
+      "Conformal PID": "better",
+      "ECI-cutoff": "worse",
+      "DriftOCP": "better"
+    }
+  },
+  "S3": {
+    "holds": true,
+    "verdicts": {
+      "Conformal PID": "worse",
+      "ECI-cutoff": "worse"
+    }
+  },
+  "S4": {
+    "holds": true,
+    "verdicts": {
+      "ACI": "worse",
+      "DtACI": "worse"
+    }
+  },
+  "overall": "holds at 95% coverage"
+}

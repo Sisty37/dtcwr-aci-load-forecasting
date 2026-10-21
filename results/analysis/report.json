@@ -1,0 +1,102 @@
+{
+  "electricity_h1": {
+    "ttr_sensitivity": {
+      "min_kendall_tau": 0.674199862463242,
+      "ranking_claim_allowed": false
+    },
+    "friedman": [
+      {
+        "outcome": "winkler_L2",
+        "chi2": 211.82330998089355,
+        "p": 5.486209936295007e-40,
+        "n": 50,
+        "k": 11,
+        "critical_difference": 2.1352430400308062,
+        "avg_rank": {
+          "Fixed 168": 5.36,
+          "Fixed 2160": 8.38,
+          "Fixed 720": 6.13,
+          "ACI": 4.12,
+          "ROCP": 7.3,
+          "DtACI": 2.0,
+          "Conformal PID": 4.08,
+          "ECI-cutoff": 6.18,
+          "DriftOCP": 9.92,
+          "DTCW-R": 6.37,
+          "DTCW-R+ACI": 6.16
+        }
+      },
+      {
+        "outcome": "rmst",
+        "chi2": 456.16649913186507,
+        "p": 1.0104511863703487e-91,
+        "n": 50,
+        "k": 11,
+        "critical_difference": 2.1352430400308062,
+        "avg_rank": {
+          "Fixed 168": 6.08,
+          "Fixed 2160": 10.98,
+          "Fixed 720": 9.75,
+          "ACI": 6.18,
+          "ROCP": 2.54,
+          "DtACI": 5.22,
+          "Conformal PID": 3.94,
+          "ECI-cutoff": 1.64,
+          "DriftOCP": 9.02,
+          "DTCW-R": 8.07,
+          "DTCW-R+ACI": 2.58
+        }
+      }
+    ]
+  },
+  "electricity_h24": {
+    "ttr_sensitivity": {
+      "min_kendall_tau": 0.8181818181818182,
+      "ranking_claim_allowed": true
+    },
+    "friedman": [
+      {
+        "outcome": "winkler_L2",
+        "chi2": 271.8550513776484,
+        "p": 1.3593076996229222e-52,
+        "n": 50,
+        "k": 11,
+        "critical_difference": 2.1352430400308062,
+        "avg_rank": {
+          "Fixed 168": 5.78,
+          "Fixed 2160": 6.34,
+          "Fixed 720": 4.29,
+          "ACI": 2.0,
+          "ROCP": 4.46,
+          "DtACI": 5.68,
+          "Conformal PID": 9.44,
+          "ECI-cutoff": 9.04,
+          "DriftOCP": 8.9,
+          "DTCW-R": 6.89,
+          "DTCW-R+ACI": 3.18
+        }
+      },
+      {
+        "outcome": "rmst",
+        "chi2": 442.7199999999998,
+        "p": 7.458335603101211e-89,
+        "n": 50,
+        "k": 11,
+        "critical_difference": 2.1352430400308062,
+        "avg_rank": {
+          "Fixed 168": 3.88,
+          "Fixed 2160": 10.78,
+          "Fixed 720": 8.58,
+          "ACI": 10.02,
+          "ROCP": 6.82,
+          "DtACI": 4.34,
+          "Conformal PID": 1.56,
+          "ECI-cutoff": 1.5,
+          "DriftOCP": 7.66,
+          "DTCW-R": 5.9,
+          "DTCW-R+ACI": 4.96
+        }
+      }
+    ]
+  }
+}
