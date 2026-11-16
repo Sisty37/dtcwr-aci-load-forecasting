@@ -318,11 +318,11 @@ def fig_method():
         ov.text((gx0 + gx1) / 2, 0.965, lab, ha="center", va="center", fontsize=6.0, color=INK2,
                 style="italic")
     titles = ["Score", "1  Detect", "2  Anchor", "3  Calibrate", "Interval"]
-    eqs = ["$s_t=|y_t-\\hat y_{t|t-h}|$",
-           "$g_t=\\max(0,g_{t-1}+z_t-k)$\nalarm if $g_t>H$",
-           "$\\hat\\tau$ = last zero of $g$\nbefore the alarm $t_a$",
-           "$n_t=\\mathrm{clip}(t-\\hat\\tau;\\,W_S,W_L)$\n$\\hat q_t=Q_{1-\\alpha_t}$(window)",
-           "$\\hat y_{t+h}\\pm\\hat q_t$"]
+    eqs = ["$s_t=|y_t-\\hat y_t|$",
+           "$g_t=(g_{t-1}+z_t-k)^+$\nalarm if $g_t>H$",
+           "$\\hat\\tau$ = last zero of $g$\nbefore alarm $t_a$",
+           "window from $\\hat\\tau$\n$W_S\\leq n_t\\leq W_L$",
+           "$\\hat y_{t+h}\\pm\\hat q_{t+h}$"]
     edge = [INK2, BLUE, BLUE, BLUE, INK2]
     axs = []
     for k, x in enumerate(xs):
@@ -404,7 +404,7 @@ def fig_method():
     ax_x, ax_w = xs[3], xs[4] + w - xs[3]
     ov.add_patch(FancyBboxPatch((ax_x, 0.045), ax_w, 0.22, boxstyle="round,pad=0,rounding_size=0.012",
                                 fc=SURF, ec=BLUE, lw=1.0, zorder=1))
-    ov.text(ax_x + 0.012, 0.225, "4  Adapt the level (ACI, h copies)", fontsize=6.2,
+    ov.text(ax_x + 0.012, 0.225, "4  Adapt the level (ACI, $h$ copies)", fontsize=6.2,
             fontweight="bold", color=INK, va="center", zorder=2)
     ov.text(ax_x + 0.012, 0.10, "$\\alpha^{(j)}\\leftarrow\\alpha^{(j)}+\\gamma(\\alpha-\\mathrm{miss}_t)$\n"
             "$j=t\\,\\mathrm{mod}\\,h$", fontsize=5.8, color=INK, va="center",
@@ -421,7 +421,8 @@ def fig_method():
     aa.text(158, al[-1], "$\\alpha_t$", fontsize=5.5, color=BLUE, va="center", ha="left")
     aa.axis("off")
     _arrow(ov, xs[4] + w * 0.5, ty0, xs[4] + w * 0.5, 0.265, color=INK2)
-    ov.text(xs[4] + w * 0.5 + 0.005, 0.315, "miss$_t$ (h late)", fontsize=5.6, color=INK2, va="center")
+    ov.text(xs[4] + w * 0.5 - 0.008, 0.315, "miss$_t$\n($h$ late)", fontsize=5.6, color=INK2, va="center",
+            ha="right", linespacing=1.2)
     _arrow(ov, xs[3] + w * 0.5, 0.265, xs[3] + w * 0.5, ty0, color=INK2)
     ov.text(xs[3] + w * 0.5 + 0.005, 0.315, "$\\alpha_t$", fontsize=5.6, color=INK2, va="center")
     # visual key instead of a block of notes (details go in the caption)

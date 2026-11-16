@@ -1,0 +1,14 @@
+{
+  "1": {
+    "H_lightgbm": 7,
+    "H_snaive": 6,
+    "fa_at_H": 0.39789473684210536,
+    "warning": null
+  },
+  "24": {
+    "H_lightgbm": 20,
+    "H_snaive": 12,
+    "fa_at_H": 0.38736842105263164,
+    "warning": null
+  }
+}

@@ -9,3 +9,8 @@ results/forecasts/
 __pycache__/
 *.pyc
 .venv/
+icrest2027_c2/
+icrest2027_c3/
+icrest2027_public.git/
+posthoc_*.txt
+verify_output.txt

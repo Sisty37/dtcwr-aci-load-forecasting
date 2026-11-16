@@ -10,10 +10,14 @@ Reads the frozen test outputs of both cohorts and prints:
 
 Run from the project root (main working copy, after combine_cohorts.py):
     python src/review_stats.py
-Output: results/review/review_stats.json and printed tables.
+In another cohort's working copy, name its test folder explicitly, e.g. cohort 3:
+    python src/review_stats.py --roots c3=results/test
+Output: results/review/review_stats.json and printed tables. Alarm medians carry a 95%
+bootstrap CI over clients (2,000 resamples, seed 0).
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -33,13 +37,19 @@ def n_test_targets(h: int) -> int:
     return int((one.split == "test").sum())
 
 
-def main():
+def boot_median_ci(v: np.ndarray, B: int = 2000, seed: int = 0) -> tuple[float, float]:
+    rng = np.random.default_rng(seed)
+    meds = np.median(rng.choice(v, (B, len(v)), replace=True), axis=1)
+    return float(np.quantile(meds, 0.025)), float(np.quantile(meds, 0.975))
+
+
+def main(roots: dict):
     OUT.mkdir(parents=True, exist_ok=True)
     pd.set_option("display.width", 200)
     res = {"clipping": [], "alarms_L2": [], "delay_variance": []}
     for h in HS:
         nt = n_test_targets(h)
-        for tag, root in ROOTS.items():
+        for tag, root in roots.items():
             df = pd.read_csv(root / f"electricity_h{h}.csv.gz", low_memory=False)
             for layer in ("L2", "L1_target"):
                 d = df[df.layer == layer]
@@ -52,8 +62,10 @@ def main():
                         "max_clipped_in_a_stream": int(v.max())})
             l2 = df[(df.layer == "L2") & df.method.isin(DET)]
             for m, v in l2.groupby("method")["alarms_per_1000_test"]:
+                lo, hi = boot_median_ci(v.to_numpy(float))
                 res["alarms_L2"].append({
                     "h": h, "cohort": tag, "method": m, "median": float(v.median()),
+                    "ci_lo": lo, "ci_hi": hi,
                     "q25": float(v.quantile(.25)), "q75": float(v.quantile(.75)),
                     "mean": float(v.mean()), "pct_clients_no_alarm": float(100 * (v == 0).mean())})
             l1 = df[(df.layer == "L1_target") & (df.kind == "variance") & df.method.isin(DET)]
@@ -76,4 +88,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--roots", nargs="+", default=None,
+                    help="tag=folder pairs, e.g. c3=results/test (default: cohorts 1 and 2)")
+    a = ap.parse_args()
+    roots = ROOTS if a.roots is None else {k: Path(v) for k, v in (x.split("=", 1) for x in a.roots)}
+    main(roots)
